@@ -73,28 +73,7 @@ bot.command("lyrics", async (ctx) => {
   }
 });
 
-// handler for text message
-// bot.on("text", async (ctx) => {
-//   const userInput = ctx.message.text;
-//   try {
-//     // show typing indicator to the user
-//     await ctx.telegram.sendChatAction(ctx.chat.id, "typing");
-//     // USE AI
-//     const geminiResponse = await ai.models.generateContent({
-//       model: "gemini-2.5-flash",
-//       contents: userInput,
-//       config: {
-//         thinkingConfig: {
-//           thinkingBudget: 0, // disable thinking ability - more spped and less token usage
-//         },
-//       },
-//     });
-//     ctx.reply(geminiResponse.text);
-//   } catch (error) {
-//     console.error("AI error: ", error);
-//     ctx.reply("Sorry, ai is fucked at the moment, do the thinking yourself...");
-//   }
-// });
+
 
 // launch the bot
 bot.launch();
@@ -102,3 +81,9 @@ console.log("The Bot is Running...");
 // stop handling
 process.once("SIGINT", () => bot.stop("SIGING"));
 process.once("SIGTERM", () => bot.stop("SIGTERM"));
+//.wGduib > div:nth-child(1) > div:nth-child(1)
+//PZPZlf zloOqf
+//PZPZlf zloOqf
+//PZPZlf zloOqf
+//PZPZlf zloOqf
+//PZPZlf zloOqf

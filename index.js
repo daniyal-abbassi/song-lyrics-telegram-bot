@@ -13,6 +13,29 @@ const bot = new Telegraf(process.env.BOT_TOKEN);
 bot.start(async (ctx) => {
   await ctx.reply("Send me a message");
 });
+
+// --- CONFIGURE /lyrics COMMAND ---
+bot.command('lyrics',async(ctx)=>{
+  // get the text after command
+  const userInput = ctx.message.text.substring('/lyrics'.length).trim();
+  if(!userInput) {
+    return ctx.reply('Use This Format: /lyrics Hello by Adele')
+  }
+  // split the input
+  console.log('user input is: ',userInput)
+  const parts = userInput.split(/ by /i);
+  if(parts.length < 2) {
+    return ctx.reply('FORMAT: SONG-NAME by ARTIST-NAME')
+  };
+  const songName = parts[0].trim();
+  const artistName = parts[1].trim();
+  try {
+    
+  } catch (error) {
+    
+  }
+})
+
 // handler for text message
 bot.on("text", async (ctx) => {
   const userInput = ctx.message.text;
@@ -35,6 +58,8 @@ bot.on("text", async (ctx) => {
     ctx.reply("Sorry, ai is fucked at the moment, do the thinking yourself...");
   }
 });
+
+
 // launch the bot
 bot.launch();
 console.log("The Bot is Running...");

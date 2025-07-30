@@ -11,7 +11,7 @@ async function ScrapeMusixMatch() {
     const newPage = await browser.newPage();
     await newPage.setViewport({ width: 1920, height: 1080 });
     await newPage.setUserAgent(
-      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36"
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
     );
     //mimic cookie
     await newPage.setCookie({
@@ -53,3 +53,4 @@ async function ScrapeMusixMatch() {
 }
 
 
+ScrapeMusixMatch();

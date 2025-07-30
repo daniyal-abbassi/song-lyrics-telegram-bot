@@ -5,7 +5,9 @@
     "cheerio": "^1.1.2",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
+    "http": "^0.0.1-security",
     "net": "^1.0.2",
+    "openai": "^5.10.2",
     "puppeteer": "^24.15.0",
     "socks": "^2.8.6",
     "telegraf": "^4.16.3"

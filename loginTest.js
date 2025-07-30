@@ -26,8 +26,7 @@ async function ScrapeMusixMatch() {
       domain: "www.musixmatch.com",
       path: "/",
     });
-    // Note: Add musixmatchUserToken if you can decode it; otherwise, automate login below
-    // Example (adjust value from your image):
+    // Token stuff
     await page.setCookie({
       name: "musixmatchUserToken",
       value:

@@ -11,6 +11,7 @@
     "googlethis": "^1.8.0",
     "http": "^0.0.1-security",
     "net": "^1.0.2",
+    "node-php-server": "^0.1.2",
     "openai": "^5.10.2",
     "puppeteer": "^24.15.0",
     "puppeteer-extra": "^3.3.6",

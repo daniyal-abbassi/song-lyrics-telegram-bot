@@ -81,9 +81,3 @@ console.log("The Bot is Running...");
 // stop handling
 process.once("SIGINT", () => bot.stop("SIGING"));
 process.once("SIGTERM", () => bot.stop("SIGTERM"));
-//.wGduib > div:nth-child(1) > div:nth-child(1)
-//PZPZlf zloOqf
-//PZPZlf zloOqf
-//PZPZlf zloOqf
-//PZPZlf zloOqf
-//PZPZlf zloOqf

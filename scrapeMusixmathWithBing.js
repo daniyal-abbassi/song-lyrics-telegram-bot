@@ -162,74 +162,53 @@ async function findMusixLinks(songName, artistName) {
       );
     } //if find musixmatch link
     if (sourceUrl && sourceUrl.includes("translate")) {
+      console.log(
+        "Scraping lyricstranslate..."
+      );
       try {
-        console.log(`Found lyricstranslate URL: ${sourceUrl}`);
-        const { data } = await axios.get(sourceUrl, {
-          headers: {
-            "User-Agent": randomUserAgent,
-            Accept:
-              "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.5",
-            Referer: "https://www.bing.com/",
-          },
-          timeout: 10000, // Add timeout to avoid hanging
-          httpAgent: new (require("http").Agent)({ keepAlive: true }),
-          httpsAgent: new (require("https").Agent)({ keepAlive: true }),
-        });
-        const $ = cheerio.load(data);
-        const lyrics = [];
-        $("#song-body .par").each((i, element) => {
-          const lines = $(element)
-            .text()
-            .trim()
-            .split("\n")
-            .map((line) => line.trim())
-            .filter((line) => line && !line.match(/^\s*$/)); // Remove empty lines
-          lyrics.push(...lines);
-        });
-        if (lyrics.length) {
-          console.log("Lyrics:\n", lyrics.join("\n"));
-        } else {
-          console.log("No lyrics found on the page.");
-        }
-      } catch (error) {
-        console.error('Error in Scraping Lyricstranslate:', error.message);
-        if (error.code === 'ECONNREFUSED' || error.message.includes('ERR_CONNECTION_CLOSED')) {
-          console.log('axios failed scraping, switch to puppeteer...')
-        }
-      };
-      console.log('Connection issue detected. Attempting Puppeteer fallback with retries...');
-      try {
-          for (let attempt = 1; attempt <= 3; attempt++) {
-            try {
-              await newPage.goto(sourceUrl, { waitUntil: 'networkidle2', timeout: 60000 });
-              await sleep(100); // Longer delay to mimic human behavior
-              await newPage.waitForSelector('#song-body', { timeout: 10000 });
-              const lyrics = await newPage.evaluate(() => {
-                const lyricsElements = Array.from(document.querySelectorAll('#song-body .par'));
-                return lyricsElements.map(el => el.textContent.trim()).filter(line => line && !line.match(/^\s*$/));
-              });
-              if (lyrics.length) {
-                console.log(`Lyricstranslate Lyrics (Puppeteer fallback, attempt ${attempt}):\n`, lyrics.join('\n'));
-                break;
-              } else {
-                console.log(`No lyrics found on attempt ${attempt}.`);
-              }
-            } catch (fallbackError) {
-              console.error(`Fallback attempt ${attempt} failed:`, fallbackError.message);
-              if (attempt === 3) console.log('All fallback attempts failed.');
-              await sleep(1000 * attempt); // Exponential backoff
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            await newPage.goto(sourceUrl, {
+              waitUntil: "networkidle2",
+              timeout: 60000,
+            });
+            await sleep(100); // Longer delay to mimic human behavior
+            await newPage.waitForSelector("#song-body", { timeout: 10000 });
+            const lyrics = await newPage.evaluate(() => {
+              const lyricsElements = Array.from(
+                document.querySelectorAll("#song-body .par")
+              );
+              return lyricsElements
+                .map((el) => el.textContent.trim())
+                .filter((line) => line && !line.match(/^\s*$/));
+            });
+            if (lyrics.length) {
+              console.log(
+                `Lyricstranslate Lyrics (Puppeteer fallback, attempt ${attempt}):\n`,
+                lyrics.join("\n")
+              );
+              break;
+            } else {
+              console.log(`No lyrics found on attempt ${attempt}.`);
             }
+          } catch (fallbackError) {
+            console.error(
+              `Fallback attempt ${attempt} failed:`,
+              fallbackError.message
+            );
+            if (attempt === 3) console.log("All fallback attempts failed.");
+            await sleep(1000 * attempt); // Exponential backoff
           }
+        }
       } catch (error) {
-        console.log('puppeteer scraping also failed: ',error)
+        console.log("puppeteer scraping also failed: ", error);
       }
     } else {
       console.error(
         "Could not find a Lyricstranslate link on the first page of Bing results."
       );
-    };
-    
+    }
+
     await newPage.screenshot({ path: "screenshot.jpg" });
     await browser.close();
   } catch (error) {
@@ -240,4 +219,4 @@ async function findMusixLinks(songName, artistName) {
   }
 }
 
-findMusixLinks("afsoos", "bahram");
+findMusixLinks("This World is Sick", "ic3peak");

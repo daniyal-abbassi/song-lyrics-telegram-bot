@@ -340,7 +340,11 @@ bot.command("lyrics",async (ctx) => {
   try {
     //get songName and ArtistName from message
     const [songName,songArtist] = userInput.split(' ');
-    console.log(`songName is: ${songName} - and songArtist is: ${songArtist}`);
+    // console.log(`songName is: ${songName} - and songArtist is: ${songArtist}`);
+    await findMusixLinks(songName,songArtist);
+    await ctx.telegram.sendChatAction(ctx.chat.id,'typing');
+    await ctx.reply(`Wait to get Lyrics for: ${songName} by ${songArtist}...`)
+    await ctx.reply(extractedLyrics)
   } catch (error) {
     console.log('Error with command /lyrics: ',error);
   }

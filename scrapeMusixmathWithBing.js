@@ -103,6 +103,7 @@ async function findMusixLinks(songName, artistName) {
       timeout: 60000,
     });
     await sleep(1000); //delay
+    
     // Step 1: Try to scrape lyrics directly from Bing search results
     console.log("Checking for lyrics on Bing search page...");
     let lyrics = [];

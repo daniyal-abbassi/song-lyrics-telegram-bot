@@ -1,5 +1,3 @@
-const axios = require("axios");
-const cheerio = require("cheerio");
 const puppeteer = require("puppeteer-extra");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
@@ -79,6 +77,7 @@ async function findMusixLinks(songName, artistName) {
     // random user agent
     const randomUserAgent =
       USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+    // create a new page
     const newPage = await browser.newPage();
     // make it more like a real browser
     await newPage.setUserAgent(randomUserAgent);
@@ -96,14 +95,43 @@ async function findMusixLinks(songName, artistName) {
     const bingQuery = `https://www.bing.com/search?q=${encodeURIComponent(
       songName
     )}+${encodeURIComponent(artistName)}+lyrics+musixmatch`;
+
+    
     console.log(`Navigating to bing: ${bingQuery}`);
     await newPage.goto(bingQuery, {
       waitUntil: "networkidle2",
       timeout: 60000,
     });
     await sleep(1000); //delay
+    // Step 1: Try to scrape lyrics directly from Bing search results
+    console.log("Checking for lyrics on Bing search page...");
+    let lyrics = [];
+    try {
+      await newPage.waitForSelector("div.lyrics", { timeout: 30000 });
+      lyrics = await newPage.evaluate(() => {
+        const lyricElements = document.querySelectorAll(
+          "div.verse.tc_translate"
+        );
+        return Array.from(lyricElements).map((element) =>
+          element.textContent.trim()
+        );
+      });
+      if (lyrics.length) {
+        console.log("Lyrics found on Bing search page:");
+        lyrics.forEach((line, index) => console.log(`- ${line}`));
+        return; // Exit if lyrics are found
+      } else {
+        console.log("No lyrics found directly on Bing search page.");
+      }
+    } catch (error) {
+      console.log(
+        "No lyrics section found on Bing search page:",
+        error.message
+      );
+    }
+    // Step 2: If no lyrics on Bing, search for Musixmatch/Lyricstranslate links
+    // scrape musixmatch
     console.log("Searching for MusixMatch Link...");
-
     const sourceUrl = await newPage.evaluate(() => {
       // Get all search result list items
       const searchResults = document.querySelectorAll("li.b_algo");
@@ -119,6 +147,7 @@ async function findMusixLinks(songName, artistName) {
       }
       return null; // Return null if no link was found
     });
+
     // ADD A FALLBACK
     if (sourceUrl && sourceUrl.includes("musixmatch")) {
       try {
@@ -162,9 +191,7 @@ async function findMusixLinks(songName, artistName) {
       );
     } //if find musixmatch link
     if (sourceUrl && sourceUrl.includes("translate")) {
-      console.log(
-        "Scraping lyricstranslate..."
-      );
+      console.log("Scraping lyricstranslate...");
       try {
         for (let attempt = 1; attempt <= 3; attempt++) {
           try {
@@ -210,7 +237,7 @@ async function findMusixLinks(songName, artistName) {
     }
 
     await newPage.screenshot({ path: "screenshot.jpg" });
-    await browser.close();
+    
   } catch (error) {
     console.log("this is error: ", error);
   } finally {
@@ -219,4 +246,4 @@ async function findMusixLinks(songName, artistName) {
   }
 }
 
-findMusixLinks("This World is Sick", "ic3peak");
+findMusixLinks("Control", "Halsey");

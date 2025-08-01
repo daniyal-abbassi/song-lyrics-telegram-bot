@@ -1,7 +1,7 @@
 // ===== SCRAPING SERVICE =====
 const puppeteer = require("puppeteer-extra");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
-const { config, USER_AGENTS, sleep } = require("../config");
+const { config, USER_AGENTS, sleep } = require("../config/configuration");
 const { LyricsNotFoundError } = require("../utils/customErrors");
 const logger = require("../utils/logger");
 

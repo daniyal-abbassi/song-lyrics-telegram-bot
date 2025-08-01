@@ -1,11 +1,13 @@
 // ===== AI SERVICE =====
-const { GoogleGenerativeAI } = require("@google/generai");
-const { config } = require("../config");
+const { GoogleGenAI } = require("@google/genai");
+const { config } = require("../config/configuration");
 const logger = require("../utils/logger");
 const { InputParseError } = require("../utils/customErrors");
 
-const genAI = new GoogleGenerativeAI(config.geminiApiKey);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const genAI = new GoogleGenAI(config.geminiApiKey);
+const model = genAI.getGenerativeModel({ 
+  model: "gemini-2.5-flash", // Correct model name
+});
 
 /**
  * Uses AI to parse a user's natural language query into a song title and artist.
@@ -47,7 +49,8 @@ async function parseSongAndArtist(userInput) {
   try {
     // get output from ai
     const result = await model.generateContent(prompt);
-    const responseText = result.response.text().trim();
+    const response = await result.response;
+    const responseText = response.text().trim();
     logger.debug({ responseText }, "Received AI response for parsing.");
     
     //parse output json from ai

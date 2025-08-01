@@ -1,5 +1,5 @@
 // ===== LYRICS CONTROLLER =====
-const aiService = require("../services/ai.service");
+// const aiService = require("../services/ai.service");
 const scrapingService = require("../services/scraping.service");
 const logger = require("../utils/logger");
 const { LyricsNotFoundError, InputParseError } = require("../utils/customErrors");
@@ -10,6 +10,7 @@ const { LyricsNotFoundError, InputParseError } = require("../utils/customErrors"
  */
 async function handleLyricsCommand(ctx) {
   const userInput = ctx.message.text.substring("/lyrics".length).trim();
+  const [songName,artistName] = userInput.split(/ by /i);
   const chatId = ctx.chat.id;
 
   if (!userInput) {
@@ -22,7 +23,7 @@ async function handleLyricsCommand(ctx) {
 
   try {
     // 1. Parse Input using AI
-    const { songName, artistName } = await aiService.parseSongAndArtist(userInput);
+    // const { songName, artistName } = await aiService.parseSongAndArtist(userInput);
     logger.info({ songName, artistName }, "AI parsing successful.");
     await ctx.telegram.editMessageText(
       chatId,

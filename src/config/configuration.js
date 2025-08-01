@@ -1,5 +1,5 @@
 // ===== CONFIGURATION & CONSTANTS =====
-
+require("dotenv").config();
 const config = {
   botToken: process.env.BOT_TOKEN,
   geminiApiKey: process.env.GEMINI_API_KEY,

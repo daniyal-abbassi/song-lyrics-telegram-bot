@@ -84,6 +84,7 @@ async function _scrapeFromMusixmatch(page, url) {
             return lyrics;
         }
         logger.warn("Navigated to Musixmatch, but no lyrics content was found.");
+        await page.screenshot({ path: "screenshot.jpg" });
         return null;
     } catch (error) {
         logger.error({ error: error.message }, "Failed to scrape lyrics from Musixmatch.");
@@ -152,7 +153,7 @@ async function getLyrics(songName, artistName) {
     await page.setExtraHTTPHeaders({ "Accept-Language": "en-US,en;q=0.9", "Accept-Encoding": "gzip, deflate, br" });
 
     // --- Navigate to Bing to start the process ---
-    const bingQuery = `https://www.bing.com/search?q=${encodeURIComponent(songName)}+${encodeURIComponent(artistName)}+lyrics`;
+    const bingQuery = `https://www.bing.com/search?q=${encodeURIComponent(songName)}+${encodeURIComponent(artistName)}+lyrics+Musixmatch`;
     logger.info({ url: bingQuery }, "Navigating to Bing to find lyrics source.");
     await page.goto(bingQuery, { waitUntil: "networkidle2", timeout: config.puppeteer.navigationTimeout });
     await sleep(config.puppeteer.minDelay);
@@ -161,16 +162,21 @@ async function getLyrics(songName, artistName) {
 
     // Strategy 1: Scrape directly from Bing
     let lyrics = await _scrapeFromBingPage(page);
-    if (lyrics) return lyrics;
+    if (lyrics) {
+      logger.info("Lyrics Found in Bing font's Page.")
+      return lyrics;
+    } 
 
     // Strategy 2 & 3: Find a source URL and scrape it
     const sourceInfo = await _findLyricsSourceUrl(page);
     if (sourceInfo) {
         if (sourceInfo.source === 'musixmatch') {
+          logger.info({url: sourceInfo.url}, "musixmatch URL founded!")
             lyrics = await _scrapeFromMusixmatch(page, sourceInfo.url);
             if (lyrics) return lyrics;
         }
         if (sourceInfo.source === 'lyricstranslate') {
+          logger.info({url: sourceInfo.url}, "lyricstranslate URL founded!")
             lyrics = await _scrapeFromLyricsTranslate(page, sourceInfo.url);
             if (lyrics) return lyrics;
         }

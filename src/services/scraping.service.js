@@ -247,18 +247,22 @@ async function getLyrics(songName, artistName) {
         lyrics = await _scrapeFromLyricsTranslate(page, sourceInfo.url);
         if (lyrics) return lyrics;
       }
+    } 
+
+    //return all links of the page if there is no lyrics
+    if(!lyrics && !sourceInfo) {
+      // New: Collect all source URLs for debugging or future strategies
+      const allSourceUrls = await _findAllSourceUrls(page);
+      if (allSourceUrls) {
+        logger.info(
+          "Collected all source URLs from Bing search results."
+        );
+        return allSourceUrls;
+      } else {
+        logger.debug("No source URLs found in search results.");
+      }
     }
 
-    // New: Collect all source URLs for debugging or future strategies
-    const allSourceUrls = await _findAllSourceUrls(page);
-    if (allSourceUrls) {
-      logger.info(
-        { allSourceUrls },
-        "Collected all source URLs from Bing search results."
-      );
-    } else {
-      logger.debug("No source URLs found in search results.");
-    }
     // If all strategies fail, throw the final error.
     logger.warn(
       `All scraping strategies failed for "${songName} by ${artistName}".`

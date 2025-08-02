@@ -35,12 +35,14 @@ async function handleLyricsCommand(ctx) {
 
     // 2. Scrape Lyrics
     const lyrics = await scrapingService.getLyrics(songName, artistName);
+    
     logger.info(`Lyrics found for "${songName}". Replying to user.`);
     
     // 3. Send Lyrics
     // Delete the "loading" message and send the final result.
     await ctx.telegram.deleteMessage(chatId, loadingMessage.message_id);
     await ctx.reply(`🎶 Here are the lyrics for "${songName}" by ${artistName}:\n\n${lyrics}`);
+    
 
   } catch (error) {
     logger.error({ error: error.name, message: error.message }, "Error handling /lyrics command.");

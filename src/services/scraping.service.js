@@ -83,8 +83,8 @@ async function _findAllSourceUrls(page) {
       const linkElement = result.querySelector("a.tilk");
       if (linkElement && linkElement.getAttribute("aria-label")) {
         results.push({
-          url: linkElement.href,
-          source: linkElement.getAttribute("aria-label").toLowerCase(),
+          title: linkElement.href || "Strange Site!!",
+          url: linkElement.getAttribute("aria-label").toLowerCase(),
         });
       }
     }
@@ -264,20 +264,20 @@ async function getLyrics(songName, artistName) {
       );
     }
 
-    // If all strategies fail, throw the final error.
-    logger.warn(
-      `All scraping strategies failed for "${songName} by ${artistName}".`
-    );
+    // Absolute final failure
     throw new LyricsNotFoundError(
-      `Could not find lyrics for "${songName} by ${artistName}" after trying multiple sources.`
+      `Could not find lyrics for "${songName} by ${artistName}" after trying all strategies.`
     );
   } catch (error) {
     logger.error(
-      { error: error.message, stack: error.stack },
+      { error: error.name, message: error.message },
       "An error occurred during the scraping process."
     );
-    if (error instanceof LyricsNotFoundError) {
-      throw error;
+    if (
+      error instanceof LyricsNotFoundError ||
+      error instanceof NoLyricsFoundButLinksAvailableError
+    ) {
+      throw error; // Re-throw our custom, expected errors
     }
     throw new Error(`A technical error occurred while trying to fetch lyrics.`);
   } finally {

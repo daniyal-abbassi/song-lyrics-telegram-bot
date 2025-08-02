@@ -7,7 +7,6 @@ const { GoogleGenAI } = require("@google/genai");
 // --- CONFIGURE GEMINI ---
 const ai = new GoogleGenAI(process.env.GEMINI_API_KEY);
 
-
 // puppeteer and scraping imports
 const puppeteer = require("puppeteer-extra");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
@@ -73,6 +72,7 @@ const sleep = (ms) =>
   new Promise((res) => setTimeout(res, ms + Math.random() * (ms * 0.5)));
 
 let extractedLyrics = null;
+let allLinks = [];
 async function findMusixLinks(songName, artistName) {
   let browser;
   try {
@@ -111,44 +111,44 @@ async function findMusixLinks(songName, artistName) {
       songName
     )}+${encodeURIComponent(artistName)}+lyrics+musixmatch`;
 
-    
     console.log(`Navigating to bing: ${bingQuery}`);
     await newPage.goto(bingQuery, {
       waitUntil: "networkidle2",
       timeout: 60000,
     });
     await sleep(1000); //delay
-    
+
     // Step 1: Try to scrape lyrics directly from Bing search results
     console.log("Checking for lyrics on Bing search page...");
     let lyrics = [];
-    try {
-      await newPage.waitForSelector("div.lyrics", { timeout: 30000 });
-      lyrics = await newPage.evaluate(() => {
-        const lyricElements = document.querySelectorAll(
-          "div.verse.tc_translate"
-        );
-        return Array.from(lyricElements).map((element) =>
-          element.textContent.trim()
-        );
-      });
-      if (lyrics.length) {
-        console.log("Lyrics found on Bing search page:");
-        lyrics.forEach((line, index) => console.log(`- ${line}`));
-        extractedLyrics =  lyrics.join("\n");
-        return; // Exit if lyrics are found
-      } else {
-        console.log("No lyrics found directly on Bing search page.");
-      }
-    } catch (error) {
-      console.log(
-        "No lyrics section found on Bing search page:",
-        error.message
-      );
-    }
+    // try {
+    //   await newPage.waitForSelector("div.lyrics", { timeout: 30000 });
+    //   lyrics = await newPage.evaluate(() => {
+    //     const lyricElements = document.querySelectorAll(
+    //       "div.verse.tc_translate"
+    //     );
+    //     return Array.from(lyricElements).map((element) =>
+    //       element.textContent.trim()
+    //     );
+    //   });
+    //   if (lyrics.length) {
+    //     console.log("Lyrics found on Bing search page:");
+    //     lyrics.forEach((line, index) => console.log(`- ${line}`));
+    //     extractedLyrics = lyrics.join("\n");
+    //     return; // Exit if lyrics are found
+    //   } else {
+    //     console.log("No lyrics found directly on Bing search page.");
+    //   }
+    // } catch (error) {
+    //   console.log(
+    //     "No lyrics section found on Bing search page:",
+    //     error.message
+    //   );
+    // }
     // Step 2: If no lyrics on Bing, search for Musixmatch/Lyricstranslate links
     // scrape musixmatch
-    console.log("Searching for MusixMatch Link...");
+
+    console.log("Searching for MusixMatch or lyricstranslate Link...");
     const sourceUrl = await newPage.evaluate(() => {
       // Get all search result list items
       const searchResults = document.querySelectorAll("li.b_algo");
@@ -165,97 +165,115 @@ async function findMusixLinks(songName, artistName) {
       return null; // Return null if no link was found
     });
 
-    // ADD A FALLBACK
-    if (sourceUrl && sourceUrl.includes("musixmatch")) {
-      try {
-        console.log(`Found Musixmatch URL: ${sourceUrl}`);
-        // set musixmatch cookies
-        await newPage.setCookie({
-          name: "mxm_bab",
-          value: "AA",
-          domain: "www.musixmatch.com",
-        });
+    const allSearchLinksWithText = await newPage.evaluate(() => {
+      const searchResults = document.querySelectorAll("li.b_algo");
+      const results = [];
 
-        console.log("Navigating to Musixmatch...");
-        await newPage.goto(sourceUrl, {
-          waitUntil: "networkidle2",
-          timeout: 60000,
-        });
-        console.log("Waiting for lyrics container to appear on Musixmatch...");
-        await sleep(1000); ///delay
-
-        await newPage.waitForSelector("div.css-175oi2r.r-1peese0", {
-          timeout: 10000,
-        });
-        //extract lyrics
-        const lyrics = await newPage.evaluate(() => {
-          const lyricsElements = Array.from(
-            document.querySelectorAll(
-              'div.css-146c3p1.r-1inkyih.r-11rrj2j.r-13awgt0.r-fdjqy7.r-1dxmaum.r-1it3c9n.r-135wba7[dir="auto"]'
-            )
-          );
-          
-          return lyricsElements.map((element) => element.textContent.trim());
-        });
-        extractedLyrics = lyrics.join("\n");
-        console.log("this should be lyrics: ", lyrics.join("\n"));
-      } catch (error) {
-        console.error("Error Scraping musixmatch: ", error);
-      }
-    } else {
-      console.error(
-        "Could not find a Musixmatch link on the first page of Bing results."
-      );
-    } //if find musixmatch link
-    if (sourceUrl && sourceUrl.includes("translate")) {
-      console.log("Scraping lyricstranslate...");
-      try {
-        for (let attempt = 1; attempt <= 3; attempt++) {
-          try {
-            await newPage.goto(sourceUrl, {
-              waitUntil: "networkidle2",
-              timeout: 60000,
-            });
-            await sleep(100); // Longer delay to mimic human behavior
-            await newPage.waitForSelector("#song-body", { timeout: 10000 });
-            const lyrics = await newPage.evaluate(() => {
-              const lyricsElements = Array.from(
-                document.querySelectorAll("#song-body .par")
-              );
-              return lyricsElements
-                .map((el) => el.textContent.trim())
-                .filter((line) => line && !line.match(/^\s*$/));
-            });
-            if (lyrics.length) {
-              console.log(
-                `Lyricstranslate Lyrics (Puppeteer fallback, attempt ${attempt}):\n`,
-                lyrics.join("\n")
-              );
-              extractedLyrics = lyrics.join("\n");
-              break;
-            } else {
-              console.log(`No lyrics found on attempt ${attempt}.`);
-            }
-          } catch (fallbackError) {
-            console.error(
-              `Fallback attempt ${attempt} failed:`,
-              fallbackError.message
-            );
-            if (attempt === 3) console.log("All fallback attempts failed.");
-            await sleep(1000 * attempt); // Exponential backoff
-          }
+      for (const result of searchResults) {
+        const linkElement = result.querySelector("a.tilk");
+        if (linkElement && linkElement.getAttribute("aria-label")) {
+          results.push({
+            url: linkElement.href,
+            source: linkElement.getAttribute("aria-label").toLowerCase(),
+          });
         }
-      } catch (error) {
-        console.log("puppeteer scraping also failed: ", error);
       }
-    } else {
-      console.error(
-        "Could not find a Lyricstranslate link on the first page of Bing results."
-      );
-    }
 
-    await newPage.screenshot({ path: "screenshot.jpg" });
-    
+      return results.length > 0 ? results : null;
+    });
+
+    console.log(allSearchLinksWithText);
+
+    // ADD A FALLBACK
+    // if (sourceUrl && sourceUrl.includes("musixmatch")) {
+    //   try {
+    //     console.log(`Found Musixmatch URL: ${sourceUrl}`);
+    //     // set musixmatch cookies
+    //     await newPage.setCookie({
+    //       name: "mxm_bab",
+    //       value: "AA",
+    //       domain: "www.musixmatch.com",
+    //     });
+
+    //     console.log("Navigating to Musixmatch...");
+    //     await newPage.goto(sourceUrl, {
+    //       waitUntil: "networkidle2",
+    //       timeout: 60000,
+    //     });
+    //     console.log("Waiting for lyrics container to appear on Musixmatch...");
+    //     await sleep(1000); ///delay
+
+    //     await newPage.waitForSelector("div.css-175oi2r.r-1peese0", {
+    //       timeout: 10000,
+    //     });
+    //     //extract lyrics
+    //     const lyrics = await newPage.evaluate(() => {
+    //       const lyricsElements = Array.from(
+    //         document.querySelectorAll(
+    //           'div.css-146c3p1.r-1inkyih.r-11rrj2j.r-13awgt0.r-fdjqy7.r-1dxmaum.r-1it3c9n.r-135wba7[dir="auto"]'
+    //         )
+    //       );
+
+    //       return lyricsElements.map((element) => element.textContent.trim());
+    //     });
+    //     extractedLyrics = lyrics.join("\n");
+    //     console.log("this should be lyrics: ", lyrics.join("\n"));
+    //   } catch (error) {
+    //     console.error("Error Scraping musixmatch: ", error);
+    //   }
+    // } else {
+    //   console.error(
+    //     "Could not find a Musixmatch link on the first page of Bing results."
+    //   );
+    // } //if find musixmatch link
+    // if (sourceUrl && sourceUrl.includes("translate")) {
+    //   console.log("Scraping lyricstranslate...");
+    //   try {
+    //     for (let attempt = 1; attempt <= 3; attempt++) {
+    //       try {
+    //         await newPage.goto(sourceUrl, {
+    //           waitUntil: "networkidle2",
+    //           timeout: 60000,
+    //         });
+    //         await sleep(100); // Longer delay to mimic human behavior
+    //         await newPage.waitForSelector("#song-body", { timeout: 10000 });
+    //         const lyrics = await newPage.evaluate(() => {
+    //           const lyricsElements = Array.from(
+    //             document.querySelectorAll("#song-body .par")
+    //           );
+    //           return lyricsElements
+    //             .map((el) => el.textContent.trim())
+    //             .filter((line) => line && !line.match(/^\s*$/));
+    //         });
+    //         if (lyrics.length) {
+    //           console.log(
+    //             `Lyricstranslate Lyrics (Puppeteer fallback, attempt ${attempt}):\n`,
+    //             lyrics.join("\n")
+    //           );
+    //           extractedLyrics = lyrics.join("\n");
+    //           break;
+    //         } else {
+    //           console.log(`No lyrics found on attempt ${attempt}.`);
+    //         }
+    //       } catch (fallbackError) {
+    //         console.error(
+    //           `Fallback attempt ${attempt} failed:`,
+    //           fallbackError.message
+    //         );
+    //         if (attempt === 3) console.log("All fallback attempts failed.");
+    //         await sleep(1000 * attempt); // Exponential backoff
+    //       }
+    //     }
+    //   } catch (error) {
+    //     console.log("puppeteer scraping also failed: ", error);
+    //   }
+    // } else {
+    //   console.error(
+    //     "Could not find a Lyricstranslate link on the first page of Bing results."
+    //   );
+    // }
+
+    // await newPage.screenshot({ path: "screenshot.jpg" });
   } catch (error) {
     console.log("this is error: ", error);
   } finally {
@@ -263,7 +281,6 @@ async function findMusixLinks(songName, artistName) {
     await browser.close();
   }
 } // findMusixLink function
-
 
 // create bot
 const bot = new Telegraf(process.env.BOT_TOKEN);
@@ -300,15 +317,15 @@ bot.start(async (ctx) => {
 //     const artistName = parts[1].trim();
 //     console.log("this should be correct text: ", correctedQuery);
 //     console.log("this shoud be parts: ", parts);
-//     // URLS 
+//     // URLS
 //     const URL_a='https://www.azlyrics.com/lyrics/melaniemartinez/void.html';
 //     const URL_b='https://www.azlyrics.com/lyrics/jcole/portantonio.html';
 //     const URL_c='https://www.azlyrics.com/lyrics/marilynmanson/killingstrangers.html'
 //     let URL=`https://www.azlyrics.com/lyrics/${artistName.toLocaleLowerCase().replace(/\s+/g,'')}/${songName.toLocaleLowerCase().replace(/\s+/g,"")}.html`;
 //     console.log('this is url: ',URL)
 //     const getLyricsPrompt = `
-//       you are a find and retrieve bot, you search sites like azlyrics: ${URL} to get lyrics of song [${songName}] by [${artistName}], do not generete yourself 
-      
+//       you are a find and retrieve bot, you search sites like azlyrics: ${URL} to get lyrics of song [${songName}] by [${artistName}], do not generete yourself
+
 //       **Output Format:**
 //       - If you find the verified lyrics, provide ONLY the lyrics and nothing else.
 //       - If you cannot find the verified lyrics, respond with the single, exact string: "ERROR::LYRICS_NOT_FOUND"
@@ -331,25 +348,24 @@ bot.start(async (ctx) => {
 //   }
 // });
 // test scraping lyrics and output TElegramBot
-bot.command("lyrics",async (ctx) => {
-  const userInput = ctx.message.text.substring('/lyrics'.length).trim();
-  if(!userInput) {
-    await ctx.reply('Correct Format: /lyrics songName songArtist')
+bot.command("lyrics", async (ctx) => {
+  const userInput = ctx.message.text.substring("/lyrics".length).trim();
+  if (!userInput) {
+    await ctx.reply("Correct Format: /lyrics songName songArtist");
   }
-  await ctx.telegram.sendChatAction(ctx.chat.id,"typing")
+  await ctx.telegram.sendChatAction(ctx.chat.id, "typing");
   try {
     //get songName and ArtistName from message
-    const [songName,songArtist] = userInput.split(/ by /i);
+    const [songName, songArtist] = userInput.split(/ by /i);
     console.log(`songName is: ${songName} - and songArtist is: ${songArtist}`);
-    await findMusixLinks(songName,songArtist);
-    await ctx.telegram.sendChatAction(ctx.chat.id,'typing');
-    await ctx.reply(`Wait to get Lyrics for: ${songName} by ${songArtist}...`)
-    await ctx.reply(extractedLyrics)
+    await findMusixLinks(songName, songArtist);
+    await ctx.telegram.sendChatAction(ctx.chat.id, "typing");
+    await ctx.reply(`Wait to get Lyrics for: ${songName} by ${songArtist}...`);
+    await ctx.reply(extractedLyrics);
   } catch (error) {
-    console.log('Error with command /lyrics: ',error);
+    console.log("Error with command /lyrics: ", error);
   }
-})
-
+});
 
 // launch the bot
 bot.launch();

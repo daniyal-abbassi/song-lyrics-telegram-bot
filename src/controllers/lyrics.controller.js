@@ -2,7 +2,11 @@
 // const aiService = require("../services/ai.service");
 const scrapingService = require("../services/scraping.service");
 const logger = require("../utils/logger");
-const { LyricsNotFoundError, InputParseError } = require("../utils/customErrors");
+const {
+  LyricsNotFoundError,
+  InputParseError,
+  NoLyricsFoundButLinksAvailableError,
+} = require("../utils/customErrors");
 
 /**
  * Handles the entire flow for the /lyrics command.
@@ -10,16 +14,20 @@ const { LyricsNotFoundError, InputParseError } = require("../utils/customErrors"
  */
 async function handleLyricsCommand(ctx) {
   const userInput = ctx.message.text.substring("/lyrics".length).trim();
-  const [songName,artistName] = userInput.split(/ by /i);
+  const [songName, artistName] = userInput.split(/ by /i);
   const chatId = ctx.chat.id;
 
   if (!userInput) {
-    return ctx.reply("Please provide a song and artist. Usage: /lyrics Song Name by Artist Name");
+    return ctx.reply(
+      "Please provide a song and artist. Usage: /lyrics Song Name by Artist Name"
+    );
   }
 
   logger.info({ chatId, userInput }, "Received /lyrics command.");
   await ctx.telegram.sendChatAction(chatId, "typing");
-  const loadingMessage = await ctx.reply("🔍 Got it! Analyzing your request and searching for lyrics...");
+  const loadingMessage = await ctx.reply(
+    "🔍 Got it! Analyzing your request and searching for lyrics..."
+  );
 
   try {
     // 1. Parse Input using AI
@@ -35,26 +43,43 @@ async function handleLyricsCommand(ctx) {
 
     // 2. Scrape Lyrics
     const lyrics = await scrapingService.getLyrics(songName, artistName);
-    
+
     logger.info(`Lyrics found for "${songName}". Replying to user.`);
-    
+
     // 3. Send Lyrics
     // Delete the "loading" message and send the final result.
     await ctx.telegram.deleteMessage(chatId, loadingMessage.message_id);
-    await ctx.reply(`🎶 Here are the lyrics for "${songName}" by ${artistName}:\n\n${lyrics}`);
-    
-
+    await ctx.reply(
+      `🎶 Here are the lyrics for "${songName}" by ${artistName}:\n\n${lyrics}`
+    );
   } catch (error) {
-    logger.error({ error: error.name, message: error.message }, "Error handling /lyrics command.");
+    logger.error(
+      { error: error.name, message: error.message },
+      "Error handling /lyrics command."
+    );
     await ctx.telegram.deleteMessage(chatId, loadingMessage.message_id);
 
     // 4. Handle Specific Errors Gracefully
-    if (error instanceof LyricsNotFoundError || error instanceof InputParseError) {
+    if (error instanceof NoLyricsFoundButLinksAvailableError) {
+      // Handle the new case: format the links into a readable message.
+      // Using Markdown to create clickable links.
+      const linksMessage = error.links
+        .map((link) => `• [${link.title}](${link.url})`)
+        .join("\n");
+      await ctx.replyWithMarkdown(`${error.message}\n\n${linksMessage}`, {
+        disable_web_page_preview: true,
+      });
+    } else if (
+      error instanceof LyricsNotFoundError ||
+      error instanceof InputParseError
+    ) {
       // These are "expected" failures, provide a helpful message.
       await ctx.reply(`⚠️ Sorry, I ran into a problem: ${error.message}`);
     } else {
       // This is an unexpected technical error.
-      await ctx.reply("🚨 An unexpected error occurred. The developers have been notified. Please try again later.");
+      await ctx.reply(
+        "🚨 An unexpected error occurred. The developers have been notified. Please try again later."
+      );
     }
   }
 }

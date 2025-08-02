@@ -13,7 +13,6 @@ require("dotenv").config();
 //   logger.fatal("FATAL: BOT_TOKEN or GEMINI_API_KEY is missing from environment variables. Exiting.");
 //   process.exit(1);
 // }
-console.log(config)
 // --- INITIALIZE BOT ---
 const bot = new Telegraf(config.botToken);
 

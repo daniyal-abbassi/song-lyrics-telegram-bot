@@ -2,7 +2,10 @@
 const puppeteer = require("puppeteer-extra");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 const { config, USER_AGENTS, sleep } = require("../config/configuration");
-const { LyricsNotFoundError } = require("../utils/customErrors");
+const {
+  LyricsNotFoundError,
+  NoLyricsFoundButLinksAvailableError,
+} = require("../utils/customErrors");
 const logger = require("../utils/logger");
 
 puppeteer.use(StealthPlugin());
@@ -247,20 +250,18 @@ async function getLyrics(songName, artistName) {
         lyrics = await _scrapeFromLyricsTranslate(page, sourceInfo.url);
         if (lyrics) return lyrics;
       }
-    } 
+    }
 
-    //return all links of the page if there is no lyrics
-    if(!lyrics && !sourceInfo) {
-      // New: Collect all source URLs for debugging or future strategies
-      const allSourceUrls = await _findAllSourceUrls(page);
-      if (allSourceUrls) {
-        logger.info(
-          "Collected all source URLs from Bing search results."
-        );
-        return allSourceUrls;
-      } else {
-        logger.debug("No source URLs found in search results.");
-      }
+    // --- FALLBACK: FIND AND RETURN LINKS ---
+    logger.warn(
+      `All scraping strategies failed. Executing fallback to find links.`
+    );
+    const fallbackLinks = await _findAllSourceUrls(page);
+    if (fallbackLinks && fallbackLinks.length > 0) {
+      throw new NoLyricsFoundButLinksAvailableError(
+        `I couldn't automatically fetch the lyrics, but I found these links that might help:`,
+        fallbackLinks
+      );
     }
 
     // If all strategies fail, throw the final error.

@@ -3,16 +3,13 @@ const { Telegraf } = require("telegraf");
 const { config } = require("./src/config/configuration");
 const { handleLyricsCommand } = require("./src/controllers/lyrics.controller");
 const logger = require("./src/utils/logger");
-require("dotenv").config();
+
 // --- VALIDATE CONFIGURATION ---
-// if (!config.botToken || !config.geminiApiKey) {
-//   logger.fatal("FATAL: BOT_TOKEN or GEMINI_API_KEY is missing from environment variables. Exiting.");
-//   process.exit(1);
-// }
-// if (!config.botToken) {
-//   logger.fatal("FATAL: BOT_TOKEN or GEMINI_API_KEY is missing from environment variables. Exiting.");
-//   process.exit(1);
-// }
+if (!config.botToken || !config.geminiApiKey) {
+  logger.fatal("FATAL: BOT_TOKEN or GEMINI_API_KEY is missing from environment variables. Exiting.");
+  process.exit(1);
+}
+
 // --- INITIALIZE BOT ---
 const bot = new Telegraf(config.botToken);
 

@@ -269,7 +269,9 @@ async function findMusixLinks(songName, artistName) {
         "Could not find a Lyricstranslate link on the first page of Bing results."
       );
     }
-
+    if(!sourceUrl) {
+      extractedLyrics = allSearchLinksWithText;
+    }
     await newPage.screenshot({ path: "screenshot.jpg" });
   } catch (error) {
     console.log("this is error: ", error);
@@ -355,6 +357,7 @@ bot.command("lyrics", async (ctx) => {
     //get songName and ArtistName from message
     const [songName, songArtist] = userInput.split(/ by /i);
     console.log(`songName is: ${songName} - and songArtist is: ${songArtist}`);
+
     //scrape function call
     await findMusixLinks(songName, songArtist);
 

@@ -8,7 +8,6 @@ const { Telegraf } = require("telegraf");
 const { GoogleGenAI } = require("@google/genai");
 const ai = new GoogleGenAI(process.env.GEMINI_API_KEY);
 
-
 // UserAgents
 const USER_AGENTS = [
   // Chrome (Windows/Mac/Linux)
@@ -67,6 +66,55 @@ const USER_AGENTS = [
 // Waiting function
 const sleep = (ms) =>
   new Promise((res) => setTimeout(res, ms + Math.random() * (ms * 0.5)));
+
+// this function meant to use ai to search gathered-urls and tyr to extract lyrics from them!
+async function aiGetLyricsWitjUrl(urls) {
+  /**
+  urls array looks like this: 
+  [
+    {
+      url: 'https://genius.com/Adele-hello-lyrics', 
+      source: 'genius' 
+   },
+    {
+      url: 'https://www.songtexte.com/songtext/adele/hello-4379270f.html',
+      source: 'songtexte.com'
+  },
+];
+   */
+
+  //loop through each source from urls array and try to get lyrics with ai URL-Context/google-search abilities.
+  for (const { url, source } of urls) {
+    try {
+      const getLyricsPrompt = `
+      you are a find and retrieve bot, you look in this site: ${source} with this URL: ${url} to get lyrics of song [${songName}] by [${artistName}], do not generete yourself.
+      
+    **Output Format:**
+    - If you find the verified lyrics, provide ONLY the lyrics and nothing else.
+    - If you cannot find the verified lyrics, respond with the single, exact string: "ERROR::LYRICS_NOT_FOUND"
+    `;
+      const lyrics = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: getLyricsPrompt,
+        config: {
+          tools: [{ urlContext: {}, googleSearch: {} }],
+          temperature: 0.1,
+        },
+      });
+      const resultOfAi = lyrics.text;
+      //test output
+      console.log('this is ai-output: ',resultOfAi);
+
+      if (resultOfAi === "ERROR::LYRICS_NOT_FOUND") {
+        continue;
+      } else {
+        return resultOfAi; //code after 'return ' is unreachble code, so no need to 'break'
+      }
+    } catch (error) {
+      console.log('even ai could not get lyrics: ',error);
+    }
+  } //for loop
+} //gain lyrics function
 
 let extractedLyrics = null;
 async function findMusixLinks(songName, artistName) {
@@ -143,8 +191,6 @@ async function findMusixLinks(songName, artistName) {
       );
     }
 
-
-    
     /// === SCRAPE MUSIXMATCH ===
     console.log("Searching for MusixMatch or lyricstranslate Link...");
     const sourceUrl = await newPage.evaluate(() => {
@@ -179,7 +225,6 @@ async function findMusixLinks(songName, artistName) {
       } //for loop
       return results.length > 0 ? results : null;
     }); //get all links
-
 
     // ADD A FALLBACK
     if (sourceUrl && sourceUrl.includes("musixmatch")) {
@@ -269,7 +314,9 @@ async function findMusixLinks(songName, artistName) {
         "Could not find a Lyricstranslate link on the first page of Bing results."
       );
     }
-    if(!sourceUrl) {
+
+    // if no sourceURL founded, return links, must return something to user,not error!
+    if (!sourceUrl) {
       extractedLyrics = allSearchLinksWithText;
     }
     await newPage.screenshot({ path: "screenshot.jpg" });
@@ -317,9 +364,6 @@ bot.start(async (ctx) => {
 //     console.log("this should be correct text: ", correctedQuery);
 //     console.log("this shoud be parts: ", parts);
 //     // URLS
-//     const URL_a='https://www.azlyrics.com/lyrics/melaniemartinez/void.html';
-//     const URL_b='https://www.azlyrics.com/lyrics/jcole/portantonio.html';
-//     const URL_c='https://www.azlyrics.com/lyrics/marilynmanson/killingstrangers.html'
 //     let URL=`https://www.azlyrics.com/lyrics/${artistName.toLocaleLowerCase().replace(/\s+/g,'')}/${songName.toLocaleLowerCase().replace(/\s+/g,"")}.html`;
 //     console.log('this is url: ',URL)
 //     const getLyricsPrompt = `
@@ -346,7 +390,9 @@ bot.start(async (ctx) => {
 //     await ctx.reply("ai is damaged!");
 //   }
 // });
+
 // test scraping lyrics and output TElegramBot
+
 bot.command("lyrics", async (ctx) => {
   const userInput = ctx.message.text.substring("/lyrics".length).trim();
   if (!userInput) {
@@ -364,8 +410,9 @@ bot.command("lyrics", async (ctx) => {
     //bot reply
     await ctx.telegram.sendChatAction(ctx.chat.id, "typing");
     await ctx.reply(`Wait to get Lyrics for: ${songName} by ${songArtist}...`);
+    console.log('type of answare is: ',typeof extractedLyrics);
+    console.log('and the answare is: ',extractedLyrics);
     await ctx.reply(extractedLyrics);
-
   } catch (error) {
     console.log("Error with command /lyrics: ", error);
   }

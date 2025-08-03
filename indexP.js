@@ -164,7 +164,8 @@ async function findMusixLinks(songName, artistName) {
     await sleep(1000); //delay
 
     // === SCRAPE FROM BING ===
-    console.log("Checking for lyrics on Bing search page...");
+    // console.log("Checking for lyrics on Bing search page...");
+    /*
     let lyrics = [];
     try {
       await newPage.waitForSelector("div.lyrics", { timeout: 30000 });
@@ -190,8 +191,9 @@ async function findMusixLinks(songName, artistName) {
         error.message
       );
     }
-
+*/
     /// === SCRAPE MUSIXMATCH ===
+  /*
     console.log("Searching for MusixMatch or lyricstranslate Link...");
     const sourceUrl = await newPage.evaluate(() => {
       // Get all search result list items
@@ -208,11 +210,13 @@ async function findMusixLinks(songName, artistName) {
       }
       // return null; // Return null if no link was found
     });
-
+*/
     /// get all links
-    if (!sourceUrl) {
-      console.log('no rource url, collecting link...')
-      const allSearchLinksWithText = await newPage.evaluate(() => {
+    //if (!sourceUrl.includes("musixmatch") && !sourceUrl.includes("translate")) {
+  try {
+    
+    console.log('no rource url, collecting link...')
+    const allSearchLinksWithText = await newPage.evaluate(() => {
         const searchResults = document.querySelectorAll("li.b_algo");
         const results = [];
 
@@ -226,13 +230,18 @@ async function findMusixLinks(songName, artistName) {
         }
       } //for loop
       return results.length > 0 ? results : null;
+      // return extractedLyrics = results.length > 0 ? results : null;
     }); //get all links
+    // if no sourceURL founded, return links, must return something to user,not error!
+    extractedLyrics = allSearchLinksWithText;
+    console.log('after return: ',extractedLyrics)
+  } catch (error) {
+    console.log('Can not get all links: ',error)  
   }
-  // if no sourceURL founded, return links, must return something to user,not error!
-    if (!sourceUrl) {
-      extractedLyrics = allSearchLinksWithText;
-    }
+
+  //}
     // ADD A FALLBACK
+  /*
     if (sourceUrl && sourceUrl.includes("musixmatch")) {
       try {
         console.log(`Found Musixmatch URL: ${sourceUrl}`);
@@ -320,7 +329,7 @@ async function findMusixLinks(songName, artistName) {
         "Could not find a Lyricstranslate link on the first page of Bing results."
       );
     }
-
+*/
     
     // await newPage.screenshot({ path: "screenshot.jpg" });
   } catch (error) {

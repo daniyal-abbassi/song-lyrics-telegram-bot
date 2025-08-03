@@ -68,7 +68,7 @@ const sleep = (ms) =>
   new Promise((res) => setTimeout(res, ms + Math.random() * (ms * 0.5)));
 
 // this function meant to use ai to search gathered-urls and tyr to extract lyrics from them!
-async function aiGetLyricsWitjUrl(urls) {
+async function aiGetLyricsWithUrl(urls,songName,artistName) {
   /**
   urls array looks like this: 
   [
@@ -213,8 +213,8 @@ async function findMusixLinks(songName, artistName) {
 */
     /// get all links
     //if (!sourceUrl.includes("musixmatch") && !sourceUrl.includes("translate")) {
+  
   try {
-    
     console.log('no rource url, collecting link...')
     const allSearchLinksWithText = await newPage.evaluate(() => {
         const searchResults = document.querySelectorAll("li.b_algo");
@@ -233,8 +233,8 @@ async function findMusixLinks(songName, artistName) {
       // return extractedLyrics = results.length > 0 ? results : null;
     }); //get all links
     // if no sourceURL founded, return links, must return something to user,not error!
+    console.log('before return: ', extractedLyrics)
     extractedLyrics = allSearchLinksWithText;
-    console.log('after return: ',extractedLyrics)
   } catch (error) {
     console.log('Can not get all links: ',error)  
   }
@@ -435,7 +435,16 @@ bot.command("lyrics", async (ctx) => {
       await ctx.reply(
         "I'm ashamed :( BUT Founded sites that migth help: ",
         keyboard
-      )
+      );
+      await ctx.telegram.sendChatAction(ctx.chat.id,'typing');
+      try {
+        console.log('get lryics with ai...');
+        const lyrics = await aiGetLyricsWithUrl(extractedLyrics,songName,songArtist);
+        console.log('result of getting lyrics with ai: ',lyrics);
+        await ctx.reply('lyrics for this music is: ',lyrics)
+      } catch (error) {
+        console.log('ai in bot.command if section faield: ',error)
+      }
     } 
   } catch (error) {
     console.log("Error with command /lyrics: ", error);

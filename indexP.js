@@ -103,16 +103,16 @@ async function aiGetLyricsWithUrl(urls,songName,artistName) {
       });
       const resultOfAi = lyrics.text;
       //test output
-      console.log('this is ai-output: ',resultOfAi);
+      console.log('this is ai-output----------------: ',resultOfAi);
 
       if (resultOfAi === "ERROR::LYRICS_NOT_FOUND") {
         continue;
-      } else {
-        return resultOfAi; //code after 'return ' is unreachble code, so no need to 'break'
       }
+      return resultOfAi; 
     } catch (error) {
       console.log('even ai could not get lyrics: ',error);
     }
+    
   } //for loop
 } //gain lyrics function
 
@@ -425,7 +425,7 @@ bot.command("lyrics", async (ctx) => {
     console.log('type of answare is: ',typeof extractedLyrics);
     // console.log('and the answare is: ',extractedLyrics);
     await ctx.reply(extractedLyrics);
-    if(typeof extractedLyrics === 'object') {
+    if(typeof extractedLyrics === 'object' && extractedLyrics.length >= 3) {
       // console.log('and the answare is: ',extractedLyrics);
       const keyboard = Markup.inlineKeyboard(
         extractedLyrics.map((site) => [
@@ -440,8 +440,12 @@ bot.command("lyrics", async (ctx) => {
       try {
         console.log('get lryics with ai...');
         const lyrics = await aiGetLyricsWithUrl(extractedLyrics,songName,songArtist);
-        console.log('result of getting lyrics with ai: ',lyrics);
-        await ctx.reply('lyrics for this music is: ',lyrics)
+        if(lyrics !== "ERROR::LYRICS_NOT_FOUND") {
+          console.log('---------------result of getting lyrics with ai: ',lyrics);
+          console.log('---------type of ai output: ',typeof lyrics)
+          await ctx.reply(`AI output: ${lyrics}`)
+          return
+        }
       } catch (error) {
         console.log('ai in bot.command if section faield: ',error)
       }

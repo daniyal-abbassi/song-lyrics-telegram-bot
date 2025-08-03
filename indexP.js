@@ -4,7 +4,7 @@ const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
 
 require("dotenv").config();
-const { Telegraf } = require("telegraf");
+const { Telegraf, Markup } = require("telegraf");
 const { GoogleGenAI } = require("@google/genai");
 const ai = new GoogleGenAI(process.env.GEMINI_API_KEY);
 
@@ -206,7 +206,7 @@ async function findMusixLinks(songName, artistName) {
           return linkElement.href; // Return the first one we find
         }
       }
-      return null; // Return null if no link was found
+      // return null; // Return null if no link was found
     });
 
     /// get all links
@@ -412,7 +412,24 @@ bot.command("lyrics", async (ctx) => {
     await ctx.reply(`Wait to get Lyrics for: ${songName} by ${songArtist}...`);
     console.log('type of answare is: ',typeof extractedLyrics);
     console.log('and the answare is: ',extractedLyrics);
+    // if(typeof extractedLyrics === object) {
+  
+    //   await ctx.reply(
+    //     "I'm ashamed :( BUT Founded sites that migth help: ",
+    //     Markup.inlineKeyboard([
+    //       //fist row
+    //       [
+    //         Markup.button.url('name','url')
+    //       ],
+    //       //second row 
+    //       [
+    //         Markup.button.url('site2','url')
+    //       ]
+    //     ])
+    //   )
+    // }
     await ctx.reply(extractedLyrics);
+    
   } catch (error) {
     console.log("Error with command /lyrics: ", error);
   }

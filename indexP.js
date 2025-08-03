@@ -426,23 +426,17 @@ bot.command("lyrics", async (ctx) => {
     // console.log('and the answare is: ',extractedLyrics);
     await ctx.reply(extractedLyrics);
     if(typeof extractedLyrics === 'object') {
-      console.log('and the answare is: ',extractedLyrics);
-
-      // await ctx.reply(
-      //   "I'm ashamed :( BUT Founded sites that migth help: ",
-      //   Markup.inlineKeyboard([
-      //     //fist row
-      //     [
-      //       Markup.button.url('name','url')
-      //     ],
-      //     //second row 
-      //     [
-      //       Markup.button.url('site2','url')
-      //     ]
-      //   ])
-      // )
-    }
-    
+      // console.log('and the answare is: ',extractedLyrics);
+      const keyboard = Markup.inlineKeyboard(
+        extractedLyrics.map((site) => [
+          Markup.button.url(site.source,site.url)
+        ])
+      )
+      await ctx.reply(
+        "I'm ashamed :( BUT Founded sites that migth help: ",
+        keyboard
+      )
+    } 
   } catch (error) {
     console.log("Error with command /lyrics: ", error);
   }

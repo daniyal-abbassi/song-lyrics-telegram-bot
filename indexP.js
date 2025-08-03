@@ -210,9 +210,11 @@ async function findMusixLinks(songName, artistName) {
     });
 
     /// get all links
-    const allSearchLinksWithText = await newPage.evaluate(() => {
-      const searchResults = document.querySelectorAll("li.b_algo");
-      const results = [];
+    if (!sourceUrl) {
+      console.log('no rource url, collecting link...')
+      const allSearchLinksWithText = await newPage.evaluate(() => {
+        const searchResults = document.querySelectorAll("li.b_algo");
+        const results = [];
 
       for (const result of searchResults) {
         const linkElement = result.querySelector("a.tilk");
@@ -225,7 +227,11 @@ async function findMusixLinks(songName, artistName) {
       } //for loop
       return results.length > 0 ? results : null;
     }); //get all links
-
+  }
+  // if no sourceURL founded, return links, must return something to user,not error!
+    if (!sourceUrl) {
+      extractedLyrics = allSearchLinksWithText;
+    }
     // ADD A FALLBACK
     if (sourceUrl && sourceUrl.includes("musixmatch")) {
       try {
@@ -315,11 +321,8 @@ async function findMusixLinks(songName, artistName) {
       );
     }
 
-    // if no sourceURL founded, return links, must return something to user,not error!
-    if (!sourceUrl) {
-      extractedLyrics = allSearchLinksWithText;
-    }
-    await newPage.screenshot({ path: "screenshot.jpg" });
+    
+    // await newPage.screenshot({ path: "screenshot.jpg" });
   } catch (error) {
     console.log("this is error: ", error);
   } finally {
@@ -411,24 +414,25 @@ bot.command("lyrics", async (ctx) => {
     await ctx.telegram.sendChatAction(ctx.chat.id, "typing");
     await ctx.reply(`Wait to get Lyrics for: ${songName} by ${songArtist}...`);
     console.log('type of answare is: ',typeof extractedLyrics);
-    console.log('and the answare is: ',extractedLyrics);
-    // if(typeof extractedLyrics === object) {
-  
-    //   await ctx.reply(
-    //     "I'm ashamed :( BUT Founded sites that migth help: ",
-    //     Markup.inlineKeyboard([
-    //       //fist row
-    //       [
-    //         Markup.button.url('name','url')
-    //       ],
-    //       //second row 
-    //       [
-    //         Markup.button.url('site2','url')
-    //       ]
-    //     ])
-    //   )
-    // }
+    // console.log('and the answare is: ',extractedLyrics);
     await ctx.reply(extractedLyrics);
+    if(typeof extractedLyrics === 'object') {
+      console.log('and the answare is: ',extractedLyrics);
+
+      // await ctx.reply(
+      //   "I'm ashamed :( BUT Founded sites that migth help: ",
+      //   Markup.inlineKeyboard([
+      //     //fist row
+      //     [
+      //       Markup.button.url('name','url')
+      //     ],
+      //     //second row 
+      //     [
+      //       Markup.button.url('site2','url')
+      //     ]
+      //   ])
+      // )
+    }
     
   } catch (error) {
     console.log("Error with command /lyrics: ", error);

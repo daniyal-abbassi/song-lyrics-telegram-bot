@@ -68,7 +68,7 @@ const sleep = (ms) =>
   new Promise((res) => setTimeout(res, ms + Math.random() * (ms * 0.5)));
 
 // this function meant to use ai to search gathered-urls and tyr to extract lyrics from them!
-async function aiGetLyricsWithUrl(urls,songName,artistName) {
+async function aiGetLyricsWithUrl(urls, songName, artistName) {
   /**
   urls array looks like this: 
   [
@@ -103,16 +103,15 @@ async function aiGetLyricsWithUrl(urls,songName,artistName) {
       });
       const resultOfAi = lyrics.text;
       //test output
-      console.log('this is ai-output----------------: ',resultOfAi);
+      console.log("this is ai-output----------------: ", resultOfAi);
 
       if (resultOfAi === "ERROR::LYRICS_NOT_FOUND") {
         continue;
       }
-      return resultOfAi; 
+      return resultOfAi;
     } catch (error) {
-      console.log('even ai could not get lyrics: ',error);
+      console.log("even ai could not get lyrics: ", error);
     }
-    
   } //for loop
 } //gain lyrics function
 
@@ -193,7 +192,7 @@ async function findMusixLinks(songName, artistName) {
     }
 */
     /// === SCRAPE MUSIXMATCH ===
-  /*
+    /*
     console.log("Searching for MusixMatch or lyricstranslate Link...");
     const sourceUrl = await newPage.evaluate(() => {
       // Get all search result list items
@@ -213,35 +212,35 @@ async function findMusixLinks(songName, artistName) {
 */
     /// get all links
     //if (!sourceUrl.includes("musixmatch") && !sourceUrl.includes("translate")) {
-  
-  try {
-    console.log('no rource url, collecting link...')
-    const allSearchLinksWithText = await newPage.evaluate(() => {
+
+    try {
+      console.log("no rource url, collecting link...");
+      const allSearchLinksWithText = await newPage.evaluate(() => {
         const searchResults = document.querySelectorAll("li.b_algo");
         const results = [];
 
-      for (const result of searchResults) {
-        const linkElement = result.querySelector("a.tilk");
-        if (linkElement && linkElement.getAttribute("aria-label")) {
-          results.push({
-            url: linkElement.href,
-            source: linkElement.getAttribute("aria-label").toLowerCase(),
-          });
-        }
-      } //for loop
-      return results.length > 0 ? results : null;
-      // return extractedLyrics = results.length > 0 ? results : null;
-    }); //get all links
-    // if no sourceURL founded, return links, must return something to user,not error!
-    console.log('before return: ', extractedLyrics)
-    extractedLyrics = allSearchLinksWithText;
-  } catch (error) {
-    console.log('Can not get all links: ',error)  
-  }
+        for (const result of searchResults) {
+          const linkElement = result.querySelector("a.tilk");
+          if (linkElement && linkElement.getAttribute("aria-label")) {
+            results.push({
+              url: linkElement.href,
+              source: linkElement.getAttribute("aria-label").toLowerCase(),
+            });
+          }
+        } //for loop
+        return results.length > 0 ? results : null;
+        // return extractedLyrics = results.length > 0 ? results : null;
+      }); //get all links
+      // if no sourceURL founded, return links, must return something to user,not error!
+      console.log("before return: ", extractedLyrics);
+      extractedLyrics = allSearchLinksWithText;
+    } catch (error) {
+      console.log("Can not get all links: ", error);
+    }
 
-  //}
+    //}
     // ADD A FALLBACK
-  /*
+    /*
     if (sourceUrl && sourceUrl.includes("musixmatch")) {
       try {
         console.log(`Found Musixmatch URL: ${sourceUrl}`);
@@ -330,7 +329,7 @@ async function findMusixLinks(songName, artistName) {
       );
     }
 */
-    
+
     // await newPage.screenshot({ path: "screenshot.jpg" });
   } catch (error) {
     console.log("this is error: ", error);
@@ -422,34 +421,56 @@ bot.command("lyrics", async (ctx) => {
     //bot reply
     await ctx.telegram.sendChatAction(ctx.chat.id, "typing");
     await ctx.reply(`Wait to get Lyrics for: ${songName} by ${songArtist}...`);
-    console.log('type of answare is: ',typeof extractedLyrics);
+    console.log("type of answare is: ", typeof extractedLyrics);
     // console.log('and the answare is: ',extractedLyrics);
     await ctx.reply(extractedLyrics);
-    if(typeof extractedLyrics === 'object' && extractedLyrics.length >= 3) {
-      // console.log('and the answare is: ',extractedLyrics);
-      const keyboard = Markup.inlineKeyboard(
-        extractedLyrics.map((site) => [
-          Markup.button.url(site.source,site.url)
-        ])
-      )
-      await ctx.reply(
-        "I'm ashamed :( BUT Founded sites that migth help: ",
-        keyboard
-      );
-      await ctx.telegram.sendChatAction(ctx.chat.id,'typing');
-      try {
-        console.log('get lryics with ai...');
-        const lyrics = await aiGetLyricsWithUrl(extractedLyrics,songName,songArtist);
-        if(lyrics !== "ERROR::LYRICS_NOT_FOUND") {
-          console.log('---------------result of getting lyrics with ai: ',lyrics);
-          console.log('---------type of ai output: ',typeof lyrics)
-          await ctx.reply(`AI output: ${lyrics}`)
-          return
-        }
-      } catch (error) {
-        console.log('ai in bot.command if section faield: ',error)
-      }
-    } 
+    try {
+      if (typeof extractedLyrics === "object") {
+        // console.log('and the answare is: ',extractedLyrics);
+        const keyboard = Markup.inlineKeyboard(
+          extractedLyrics.map((site) => [
+            Markup.button.url(site.source, site.url),
+          ])
+        );
+        await ctx.reply(
+          "I'm ashamed :( BUT Founded sites that migth help: ",
+          keyboard
+        );
+        await ctx.telegram.sendChatAction(ctx.chat.id, "typing");
+        console.log("get lryics with ai...");
+        const lyrics = await aiGetLyricsWithUrl(
+          extractedLyrics,
+          songName,
+          songArtist
+        );
+        if (lyrics !== "ERROR::LYRICS_NOT_FOUND") {
+          console.log(
+            "---------------result of getting lyrics with ai: ",
+            lyrics
+          );
+          console.log("---------type of ai output: ", typeof lyrics);
+          const sendLongMessage = async (ctx, text) => {
+            if (text.length <= 4096) {
+              await ctx.reply(text);
+            } else {
+              // Option 1: Split into chunks
+              const chunks = splitTextIntoChunks(text);
+              for (const chunk of chunks) {
+                await ctx.reply(chunk);
+              }
+
+              // Option 2: Send as file
+              // await ctx.replyWithDocument(Input.fromLocalFile('long_text.txt'));
+            }
+          };
+
+          await sendLongMessage(ctx, lyrics);
+          return;
+        } //if
+      } // if
+    } catch (error) {
+      console.log("ai in bot.command if section faield: ", error);
+    }
   } catch (error) {
     console.log("Error with command /lyrics: ", error);
   }

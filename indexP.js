@@ -163,8 +163,8 @@ async function findMusixLinks(songName, artistName) {
     await sleep(1000); //delay
 
     // === SCRAPE FROM BING ===
-    // console.log("Checking for lyrics on Bing search page...");
-    /*
+    console.log("Checking for lyrics on Bing search page...");
+
     let lyrics = [];
     try {
       await newPage.waitForSelector("div.lyrics", { timeout: 30000 });
@@ -190,9 +190,9 @@ async function findMusixLinks(songName, artistName) {
         error.message
       );
     }
-*/
+
     /// === SCRAPE MUSIXMATCH ===
-    /*
+
     console.log("Searching for MusixMatch or lyricstranslate Link...");
     const sourceUrl = await newPage.evaluate(() => {
       // Get all search result list items
@@ -209,38 +209,36 @@ async function findMusixLinks(songName, artistName) {
       }
       // return null; // Return null if no link was found
     });
-*/
+
     /// get all links
-    //if (!sourceUrl.includes("musixmatch") && !sourceUrl.includes("translate")) {
+    if (!sourceUrl.includes("musixmatch") && !sourceUrl.includes("translate")) {
+      try {
+        console.log("no rource url, collecting link...");
+        const allSearchLinksWithText = await newPage.evaluate(() => {
+          const searchResults = document.querySelectorAll("li.b_algo");
+          const results = [];
 
-    try {
-      console.log("no rource url, collecting link...");
-      const allSearchLinksWithText = await newPage.evaluate(() => {
-        const searchResults = document.querySelectorAll("li.b_algo");
-        const results = [];
-
-        for (const result of searchResults) {
-          const linkElement = result.querySelector("a.tilk");
-          if (linkElement && linkElement.getAttribute("aria-label")) {
-            results.push({
-              url: linkElement.href,
-              source: linkElement.getAttribute("aria-label").toLowerCase(),
-            });
-          }
-        } //for loop
-        return results.length > 0 ? results : null;
-        // return extractedLyrics = results.length > 0 ? results : null;
-      }); //get all links
-      // if no sourceURL founded, return links, must return something to user,not error!
-      console.log("before return: ", extractedLyrics);
-      extractedLyrics = allSearchLinksWithText;
-    } catch (error) {
-      console.log("Can not get all links: ", error);
+          for (const result of searchResults) {
+            const linkElement = result.querySelector("a.tilk");
+            if (linkElement && linkElement.getAttribute("aria-label")) {
+              results.push({
+                url: linkElement.href,
+                source: linkElement.getAttribute("aria-label").toLowerCase(),
+              });
+            }
+          } //for loop
+          return results.length > 0 ? results : null;
+          // return extractedLyrics = results.length > 0 ? results : null;
+        }); //get all links
+        // if no sourceURL founded, return links, must return something to user,not error!
+        console.log("before return: ", extractedLyrics);
+        extractedLyrics = allSearchLinksWithText;
+      } catch (error) {
+        console.log("Can not get all links: ", error);
+      }
     }
-
-    //}
     // ADD A FALLBACK
-    /*
+
     if (sourceUrl && sourceUrl.includes("musixmatch")) {
       try {
         console.log(`Found Musixmatch URL: ${sourceUrl}`);
@@ -328,7 +326,6 @@ async function findMusixLinks(songName, artistName) {
         "Could not find a Lyricstranslate link on the first page of Bing results."
       );
     }
-*/
 
     // await newPage.screenshot({ path: "screenshot.jpg" });
   } catch (error) {
@@ -343,8 +340,25 @@ async function findMusixLinks(songName, artistName) {
 const bot = new Telegraf(process.env.BOT_TOKEN);
 // a handler for /start command
 bot.start(async (ctx) => {
-  await ctx.reply("Send me a message");
+  //start keyboard selection
+  await ctx.reply(
+    "How to get Lyrics for you:",
+    Markup.keyboard([
+      ["I wanna Send a Music File."],
+      ["Get Lyrics by entering name."],
+    ])
+    .oneTime() // The keyboard disappears after one use
+    .resize() // Makes the buttons fit the screen better
+  );
 });
+//KEYBOARD REPLY
+bot.hears("I wanna Send a Music File.", async (ctx) => {
+  await ctx.reply("Send me a Music")
+})
+bot.hears("Get Lyrics by entering name.", async (ctx) => {
+  await ctx.reply("type /lyrics Name by Artist e.g: Hello by Adele")
+})
+bot.command("/file", async (ctx) => {});
 
 // --- CONFIGURE /lyrics COMMAND ---
 // bot.command("lyrics", async (ctx) => {
@@ -448,23 +462,7 @@ bot.command("lyrics", async (ctx) => {
             "---------------result of getting lyrics with ai: ",
             lyrics
           );
-          console.log("---------type of ai output: ", typeof lyrics);
-          const sendLongMessage = async (ctx, text) => {
-            if (text.length <= 4096) {
-              await ctx.reply(text);
-            } else {
-              // Option 1: Split into chunks
-              const chunks = splitTextIntoChunks(text);
-              for (const chunk of chunks) {
-                await ctx.reply(chunk);
-              }
-
-              // Option 2: Send as file
-              // await ctx.replyWithDocument(Input.fromLocalFile('long_text.txt'));
-            }
-          };
-
-          await sendLongMessage(ctx, lyrics);
+          await ctx.reply(`this should be lyrics: ${lyrics}`);
           return;
         } //if
       } // if

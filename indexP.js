@@ -393,11 +393,10 @@ bot.hears("Slow - 1 or 2 mins", async (ctx) => {
   //show a message => indicating that the bot is trying go get , kink of spinner maybe, or a timer , something that tells user that the bot is in sort of a process and also the user can see how much of the process is remained.
   //get lyrics
   console.log('ctx.session should be: ',ctx.session)
-  ctx.reply(
-    `name is: ${ctx.session.lastSong.name} \n artist is: ${ctx.session.lastSong.artist}`
-  );
-  // await getLyrics(songName, songArtist);
-  // await ctx.reply(`lyrics: ${extractedLyrics}`);
+  const songName = ctx.session.lastSong.name;
+  const songArtist = ctx.session.lastSong.artist;
+  await getLyrics(songName, songArtist);
+  await ctx.reply(`lyrics: ${extractedLyrics}`);
 });
 
 //get lyrics ai method

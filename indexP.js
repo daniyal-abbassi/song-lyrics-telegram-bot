@@ -4,7 +4,7 @@ const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
 
 require("dotenv").config();
-const { Telegraf, Markup } = require("telegraf");
+const { Telegraf, Markup, session } = require("telegraf");
 const { message } = require("telegraf/filters");
 const { GoogleGenAI } = require("@google/genai");
 const ai = new GoogleGenAI(process.env.GEMINI_API_KEY);
@@ -340,6 +340,13 @@ async function getLyrics(songName, artistName) {
 // --- CREATE BOT ---
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
+// initiate sessions
+bot.use(session());
+// initialize session object
+bot.use((ctx, next) => {
+  ctx.session ??= {}; //ensure session is object
+  return next();
+});
 // --- /start COMMAND ---
 bot.start(async (ctx) => {
   //start keyboard selection
@@ -366,6 +373,8 @@ bot.on(message("audio"), async (ctx) => {
   const audio = ctx.message.audio;
   const songName = audio.title;
   const songArtist = audio.performer;
+  //add info to session
+  ctx.session.lastSong = { name: songName, artist: songArtist };
 
   await ctx.reply(
     ` title: ${songName} \n name: ${audio.file_name} \n time: ${audio.duration} \n size: ${audio.file_size} \n performer: ${songArtist} \n memeType: ${audio.mime_type} \n id: ${audio.file_id}\n uniq id: ${audio.file_unique_id} \n tumbnail: ${audio.thumbnail}`
@@ -373,7 +382,9 @@ bot.on(message("audio"), async (ctx) => {
   //choose between 1-with scraping(1,2 mins) & 2-with ai(2,5min)
   await ctx.reply(
     "Specify method",
-    Markup.keyboard([["Slow - 1 or 2 mins"], ["Slower - 2 or 5 mins"]]).oneTime().resize()
+    Markup.keyboard([["Slow - 1 or 2 mins"], ["Slower - 2 or 5 mins"]])
+      .oneTime()
+      .resize()
   );
 });
 // get lyrics scraping method
@@ -381,9 +392,10 @@ bot.hears("Slow - 1 or 2 mins", async (ctx) => {
   ctx.telegram.sendChatAction(ctx.chat.id, "typing");
   //show a message => indicating that the bot is trying go get , kink of spinner maybe, or a timer , something that tells user that the bot is in sort of a process and also the user can see how much of the process is remained.
   //get lyrics
-  const filesId = 'CQACAgEAAxkBAAICc2iWk_ROa6C4nz3XDNt5-FXLWUDrAAKTAAMxwqlGCphFVvb-OpM2BA';
-
-  await ctx.replyWithAudio(filesId)
+  console.log('ctx.session should be: ',ctx.session)
+  ctx.reply(
+    `name is: ${ctx.session.lastSong.name} \n artist is: ${ctx.session.lastSong.artist}`
+  );
   // await getLyrics(songName, songArtist);
   // await ctx.reply(`lyrics: ${extractedLyrics}`);
 });
@@ -392,8 +404,6 @@ bot.hears("Slow - 1 or 2 mins", async (ctx) => {
 bot.hears("Slower - 2 or 5 mins", async (ctx) => {
   ctx.telegram.sendChatAction(ctx.chat.id, "typing");
   //show a message => indicating that the bot is trying go get , kink of spinner maybe, or a timer , something that tells user that the bot is in sort of a process and also the user can see how much of the process is remained.
-
-
 });
 // --- CONFIGURE /lyrics COMMAND ---
 // bot.command("lyrics", async (ctx) => {

@@ -69,22 +69,83 @@ const sleep = (ms) =>
   new Promise((res) => setTimeout(res, ms + Math.random() * (ms * 0.5)));
 
 // this function meant to use ai to search gathered-urls and tyr to extract lyrics from them!
-async function aiGetLyricsWithUrl(urls, songName, artistName) {
-  /**
-  urls array looks like this: 
-  [
-    {
-      url: 'https://genius.com/Adele-hello-lyrics', 
-      source: 'genius' 
-   },
-    {
-      url: 'https://www.songtexte.com/songtext/adele/hello-4379270f.html',
-      source: 'songtexte.com'
-  },
-];
-   */
+async function extractAllLinks(songName, artistName) {
+  let browser;
+  try {
+    // === CONFIGURE BROWSER ===
+    // configure browser
+    browser = await puppeteer.launch({
+      headless: "new",
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-infobars",
+        "--window-position=0,0",
+        "--ignore-certifcate-errors",
+        "--ignore-certifcate-errors-spki-list",
+      ],
+      ignoreHTTPSErrors: true,
+    });
+    // random user agent
+    const randomUserAgent =
+      USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+    // create a new page
+    const newPage = await browser.newPage();
+    // more real browser
+    await newPage.setUserAgent(randomUserAgent);
+    await newPage.setViewport({
+      width: 1920 + Math.floor(Math.random() * 100),
+      height: 1080 + Math.floor(Math.random() * 100),
+    });
+    await newPage.setExtraHTTPHeaders({
+      "Accept-Language": "en-US,en;q=0.9",
+      "Accept-Encoding": "gzip, deflate, br",
+    });
+    // === BING SEARCH ===
+    console.log("Navigating to URL...");
+    const bingQuery = `https://www.bing.com/search?q=${encodeURIComponent(
+      songName
+    )}+${encodeURIComponent(artistName)}+lyrics+musixmatch`;
 
-  //loop through each source from urls array and try to get lyrics with ai URL-Context/google-search abilities.
+    console.log(`Navigating to bing: ${bingQuery}`);
+    await newPage.goto(bingQuery, {
+      waitUntil: "networkidle2",
+      timeout: 60000,
+    });
+    await sleep(1000); //delay
+
+    // === GET LINKS ===
+    try {
+      console.log("Getting sites links.");
+      const allSearchLinksWithText = await newPage.evaluate(() => {
+        const searchResults = document.querySelectorAll("li.b_algo");
+        const results = [];
+
+        for (const result of searchResults) {
+          const linkElement = result.querySelector("a.tilk");
+          if (linkElement && linkElement.getAttribute("aria-label")) {
+            results.push({
+              url: linkElement.href,
+              source: linkElement.getAttribute("aria-label").toLowerCase(),
+            });
+          }
+        } //for loop
+        return results.length > 0 ? results : null;
+      }); //get all links
+    } catch (error) {
+      console.log("Can not get all links: ", error);
+    }
+  } catch (error) {
+    console.log("this is error: ", error);
+  } finally {
+    console.log("Closing the browser...");
+    await browser.close();
+  }
+
+} //gain lyrics function
+
+async function getLyricsWithAI(urls) {
+    //loop through each source from urls array and try to get lyrics with ai URL-Context/google-search abilities.
   for (const { url, source } of urls) {
     try {
       const getLyricsPrompt = `
@@ -113,8 +174,9 @@ async function aiGetLyricsWithUrl(urls, songName, artistName) {
     } catch (error) {
       console.log("even ai could not get lyrics: ", error);
     }
-  } //for loop
-} //gain lyrics function
+  } // for loop
+} // getLyricsWtihAI
+
 
 let extractedLyrics = null;
 async function getLyrics(songName, artistName) {
@@ -347,7 +409,8 @@ bot.use((ctx, next) => {
   ctx.session ??= {}; //ensure session is object
   return next();
 });
-// --- /start COMMAND ---
+
+// --- start COMMAND ---
 bot.start(async (ctx) => {
   //start keyboard selection
   await ctx.reply(
@@ -360,6 +423,7 @@ bot.start(async (ctx) => {
       .resize() // Makes the buttons fit the screen better
   );
 });
+
 //KEYBOARD REPLY
 bot.hears("I wanna Send a Music File.", async (ctx) => {
   await ctx.reply("Send me a Music");
@@ -367,6 +431,7 @@ bot.hears("I wanna Send a Music File.", async (ctx) => {
 bot.hears("Get Lyrics by entering name.", async (ctx) => {
   await ctx.reply("type /lyrics Name by Artist e.g: Hello by Adele");
 });
+
 //RECIEVE MUSIC FILE
 bot.on(message("audio"), async (ctx) => {
   console.log("audio has sent!");
@@ -387,12 +452,13 @@ bot.on(message("audio"), async (ctx) => {
       .resize()
   );
 });
+
 // get lyrics scraping method
 bot.hears("Slow - 1 or 2 mins", async (ctx) => {
   ctx.telegram.sendChatAction(ctx.chat.id, "typing");
   //show a message => indicating that the bot is trying go get , kink of spinner maybe, or a timer , something that tells user that the bot is in sort of a process and also the user can see how much of the process is remained.
   //get lyrics
-  console.log('ctx.session should be: ',ctx.session)
+  console.log("ctx.session should be: ", ctx.session);
   const songName = ctx.session.lastSong.name;
   const songArtist = ctx.session.lastSong.artist;
   await getLyrics(songName, songArtist);
@@ -403,6 +469,15 @@ bot.hears("Slow - 1 or 2 mins", async (ctx) => {
 bot.hears("Slower - 2 or 5 mins", async (ctx) => {
   ctx.telegram.sendChatAction(ctx.chat.id, "typing");
   //show a message => indicating that the bot is trying go get , kink of spinner maybe, or a timer , something that tells user that the bot is in sort of a process and also the user can see how much of the process is remained.
+  console.log("ctx.session should be: ", ctx.session);
+  const songName = ctx.session.lastSong.name;
+  const songArtist = ctx.session.lastSong.artist;
+  
+  // get all links
+  const urls = await extractAllLinks(songName,songArtist);
+  //loop through links with AI
+  const lyrics = await getLyricsWithAI(urls);
+  console.log('urls should be: ',urls,'   \n ------lyrics should be: ',lyrics)
 });
 // --- CONFIGURE /lyrics COMMAND ---
 // bot.command("lyrics", async (ctx) => {
@@ -482,6 +557,7 @@ bot.command("lyrics", async (ctx) => {
     console.log("type of answare is: ", typeof extractedLyrics);
     // console.log('and the answare is: ',extractedLyrics);
     await ctx.reply(extractedLyrics);
+    /*
     try {
       if (typeof extractedLyrics === "object") {
         // console.log('and the answare is: ',extractedLyrics);
@@ -496,7 +572,7 @@ bot.command("lyrics", async (ctx) => {
         );
         await ctx.telegram.sendChatAction(ctx.chat.id, "typing");
         console.log("get lryics with ai...");
-        const lyrics = await aiGetLyricsWithUrl(
+        const lyrics = await extractAllLinks(
           extractedLyrics,
           songName,
           songArtist
@@ -513,6 +589,7 @@ bot.command("lyrics", async (ctx) => {
     } catch (error) {
       console.log("ai in bot.command if section faield: ", error);
     }
+      */
   } catch (error) {
     console.log("Error with command /lyrics: ", error);
   }

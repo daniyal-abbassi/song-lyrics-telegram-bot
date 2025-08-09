@@ -212,7 +212,7 @@ async function getLyrics(songName, artistName) {
     });
 
     /// get all links
-    if ( !sourceUrl) {
+    if (!sourceUrl) {
       try {
         console.log("no rource url, collecting link...");
         const allSearchLinksWithText = await newPage.evaluate(() => {
@@ -361,9 +361,7 @@ bot.hears("Get Lyrics by entering name.", async (ctx) => {
   await ctx.reply("type /lyrics Name by Artist e.g: Hello by Adele");
 });
 //RECIEVE MUSIC FILE
-bot.on(
-  message("audio"), 
-  async (ctx) => {
+bot.on(message("audio"), async (ctx) => {
   console.log("audio has sent!");
   const audio = ctx.message.audio;
   const songName = audio.title;
@@ -372,11 +370,31 @@ bot.on(
   await ctx.reply(
     ` title: ${songName} \n name: ${audio.file_name} \n time: ${audio.duration} \n size: ${audio.file_size} \n performer: ${songArtist} \n memeType: ${audio.mime_type} \n id: ${audio.file_id}\n uniq id: ${audio.file_unique_id} \n tumbnail: ${audio.thumbnail}`
   );
-  //get lyrics 
-  await getLyrics(songName,songArtist);
-  await ctx.reply(`lyrics: ${extractedLyrics}`)
+  //choose between 1-with scraping(1,2 mins) & 2-with ai(2,5min)
+  await ctx.reply(
+    "Specify method",
+    Markup.keyboard([["Slow - 1 or 2 mins"], ["Slower - 2 or 5 mins"]]).oneTime().resize()
+  );
+});
+// get lyrics scraping method
+bot.hears("Slow - 1 or 2 mins", async (ctx) => {
+  ctx.telegram.sendChatAction(ctx.chat.id, "typing");
+  //show a message => indicating that the bot is trying go get , kink of spinner maybe, or a timer , something that tells user that the bot is in sort of a process and also the user can see how much of the process is remained.
+  //get lyrics
+  const filesId = 'CQACAgEAAxkBAAICc2iWk_ROa6C4nz3XDNt5-FXLWUDrAAKTAAMxwqlGCphFVvb-OpM2BA';
+
+  await ctx.replyWithAudio(filesId)
+  // await getLyrics(songName, songArtist);
+  // await ctx.reply(`lyrics: ${extractedLyrics}`);
 });
 
+//get lyrics ai method
+bot.hears("Slower - 2 or 5 mins", async (ctx) => {
+  ctx.telegram.sendChatAction(ctx.chat.id, "typing");
+  //show a message => indicating that the bot is trying go get , kink of spinner maybe, or a timer , something that tells user that the bot is in sort of a process and also the user can see how much of the process is remained.
+
+
+});
 // --- CONFIGURE /lyrics COMMAND ---
 // bot.command("lyrics", async (ctx) => {
 //   // get the text after command

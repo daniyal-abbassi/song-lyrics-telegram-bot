@@ -212,7 +212,7 @@ async function getLyrics(songName, artistName) {
     });
 
     /// get all links
-    if (!sourceUrl.includes("musixmatch") && !sourceUrl.includes("translate")) {
+    if ( !sourceUrl) {
       try {
         console.log("no rource url, collecting link...");
         const allSearchLinksWithText = await newPage.evaluate(() => {

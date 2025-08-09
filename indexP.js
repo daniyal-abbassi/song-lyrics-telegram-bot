@@ -5,6 +5,7 @@ puppeteer.use(StealthPlugin());
 
 require("dotenv").config();
 const { Telegraf, Markup } = require("telegraf");
+const { message } = require("telegraf/filters");
 const { GoogleGenAI } = require("@google/genai");
 const ai = new GoogleGenAI(process.env.GEMINI_API_KEY);
 
@@ -116,7 +117,7 @@ async function aiGetLyricsWithUrl(urls, songName, artistName) {
 } //gain lyrics function
 
 let extractedLyrics = null;
-async function findMusixLinks(songName, artistName) {
+async function getLyrics(songName, artistName) {
   let browser;
   try {
     // === CONFIGURE BROWSER ===
@@ -207,7 +208,7 @@ async function findMusixLinks(songName, artistName) {
           return linkElement.href; // Return the first one we find
         }
       }
-      // return null; // Return null if no link was found
+      return null; // Return null if no link was found
     });
 
     /// get all links
@@ -336,9 +337,10 @@ async function findMusixLinks(songName, artistName) {
   }
 } // findMusixLink function
 
-// create bot
+// --- CREATE BOT ---
 const bot = new Telegraf(process.env.BOT_TOKEN);
-// a handler for /start command
+
+// --- /start COMMAND ---
 bot.start(async (ctx) => {
   //start keyboard selection
   await ctx.reply(
@@ -347,18 +349,33 @@ bot.start(async (ctx) => {
       ["I wanna Send a Music File."],
       ["Get Lyrics by entering name."],
     ])
-    .oneTime() // The keyboard disappears after one use
-    .resize() // Makes the buttons fit the screen better
+      .oneTime() // The keyboard disappears after one use
+      .resize() // Makes the buttons fit the screen better
   );
 });
 //KEYBOARD REPLY
 bot.hears("I wanna Send a Music File.", async (ctx) => {
-  await ctx.reply("Send me a Music")
-})
+  await ctx.reply("Send me a Music");
+});
 bot.hears("Get Lyrics by entering name.", async (ctx) => {
-  await ctx.reply("type /lyrics Name by Artist e.g: Hello by Adele")
-})
-bot.command("/file", async (ctx) => {});
+  await ctx.reply("type /lyrics Name by Artist e.g: Hello by Adele");
+});
+//RECIEVE MUSIC FILE
+bot.on(
+  message("audio"), 
+  async (ctx) => {
+  console.log("audio has sent!");
+  const audio = ctx.message.audio;
+  const songName = audio.title;
+  const songArtist = audio.performer;
+
+  await ctx.reply(
+    ` title: ${songName} \n name: ${audio.file_name} \n time: ${audio.duration} \n size: ${audio.file_size} \n performer: ${songArtist} \n memeType: ${audio.mime_type} \n id: ${audio.file_id}\n uniq id: ${audio.file_unique_id} \n tumbnail: ${audio.thumbnail}`
+  );
+  //get lyrics 
+  await getLyrics(songName,songArtist);
+  await ctx.reply(`lyrics: ${extractedLyrics}`)
+});
 
 // --- CONFIGURE /lyrics COMMAND ---
 // bot.command("lyrics", async (ctx) => {
@@ -430,7 +447,7 @@ bot.command("lyrics", async (ctx) => {
     console.log(`songName is: ${songName} - and songArtist is: ${songArtist}`);
 
     //scrape function call
-    await findMusixLinks(songName, songArtist);
+    await getLyrics(songName, songArtist);
 
     //bot reply
     await ctx.telegram.sendChatAction(ctx.chat.id, "typing");

@@ -68,6 +68,15 @@ const USER_AGENTS = [
 const sleep = (ms) =>
   new Promise((res) => setTimeout(res, ms + Math.random() * (ms * 0.5)));
 
+// escape HTML for safe use inside Telegram HTML parse_mode
+function escapeHtml(text) {
+  if (text == null) return "";
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 // this function meant to use ai to search gathered-urls and tyr to extract lyrics from them!
 async function extractAllLinks(songName, artistName) {
   let browser;
@@ -457,7 +466,17 @@ bot.hears("Slow - 1 or 2 mins", async (ctx) => {
   const songName = ctx.session.lastSong.name;
   const songArtist = ctx.session.lastSong.artist;
   await getLyrics(songName, songArtist);
-  await ctx.reply(`lyrics: ${extractedLyrics}`);
+  const isStringLyrics = typeof extractedLyrics === "string";
+  if (isStringLyrics && extractedLyrics.trim().length > 0) {
+    await ctx.reply(
+      `<pre><code>${escapeHtml(extractedLyrics)}</code></pre>`,
+      { parse_mode: "HTML" }
+    );
+  } else {
+    await ctx.reply(
+      "No lyrics found. Try the slower method or provide song details again."
+    );
+  }
 });
 
 //get lyrics ai method
@@ -478,6 +497,15 @@ bot.hears("Slower - 2 or 5 mins", async (ctx) => {
     "   \n ------lyrics should be: ",
     lyrics
   );
+  if (typeof lyrics === "string" && lyrics.trim()) {
+    await ctx.reply(`<pre><code>${escapeHtml(lyrics)}</code></pre>`, {
+      parse_mode: "HTML",
+    });
+  } else if (lyrics === "ERROR::LYRICS_NOT_FOUND") {
+    await ctx.reply("Lyrics not found via AI. Try the other method.");
+  } else {
+    await ctx.reply("No lyrics found. Try again with correct song and artist.");
+  }
 });
 
 bot.hears("Get Lyrics by entering name.", async (ctx) => {
@@ -506,7 +534,19 @@ bot.command("lyrics", async (ctx) => {
     await ctx.reply(`Wait to get Lyrics for: ${songName} by ${songArtist}...`);
     console.log("type of answare is: ", typeof extractedLyrics);
     console.log("and the answare is: ", extractedLyrics);
-    await ctx.reply(extractedLyrics);
+    if (typeof extractedLyrics === "string" && extractedLyrics.trim()) {
+      await ctx.reply(`<pre><code>${escapeHtml(extractedLyrics)}</code></pre>`, {
+        parse_mode: "HTML",
+      });
+    } else if (Array.isArray(extractedLyrics)) {
+      await ctx.reply(
+        "No direct lyrics found. I found some links that might help instead."
+      );
+    } else {
+      await ctx.reply(
+        "No lyrics found. Try the slower method or provide song details again."
+      );
+    }
     /*
     try {
       if (typeof extractedLyrics === "object") {

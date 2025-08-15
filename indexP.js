@@ -427,16 +427,6 @@ bot.start(async (ctx) => {
 bot.hears("I wanna Send a Music File.", async (ctx) => {
   await ctx.reply("Send me a Music");
 });
-bot.hears("Get Lyrics by entering name.", async (ctx) => {
-  //choose between 1-with scraping(1,2 mins) & 2-with ai(2,5min)
-  await ctx.reply(
-    "Specify method",
-    Markup.keyboard([["Slow - 1 or 2 mins"], ["Slower - 2 or 5 mins"]])
-      .oneTime()
-      .resize()
-  );
-  // await ctx.reply("type /lyrics Name by Artist e.g: Hello by Adele");
-});
 
 //RECIEVE MUSIC FILE
 bot.on(message("audio"), async (ctx) => {
@@ -491,7 +481,23 @@ bot.hears("a.Slower - 2 or 5 mins", async (ctx) => {
   );
 });
 
+bot.hears("Get Lyrics by entering name.", async (ctx) => {
+  //choose between 1-with scraping(1,2 mins) & 2-with ai(2,5min)
+  await ctx.reply(
+    "Specify method",
+    Markup.keyboard([["b.Slow - 1 or 2 mins"], ["b.Slower - 2 or 5 mins"]])
+      .oneTime()
+      .resize()
+  );
+  // await ctx.reply("type /lyrics Name by Artist e.g: Hello by Adele");
+}); 
 
+bot.hears("b.Slow - 1 or 2 mins",async (ctx) => {
+  await ctx.reply("You wanna get music with name === slow methode")
+})
+bot.hears("b.Slower - 2 or 5 mins",async (ctx) => {
+  await ctx.reply("You wanna get music with name === slower methode")
+})
 // --- CONFIGURE /lyrics COMMAND ---
 // bot.command("lyrics", async (ctx) => {
 //   // get the text after command

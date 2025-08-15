@@ -107,12 +107,12 @@ async function extractAllLinks(songName, artistName) {
       songName
     )}+${encodeURIComponent(artistName)}+lyrics+musixmatch`;
 
-    console.log(`Navigating to bing: ${bingQuery}`);
+    console.log(`this is bing query:  ${bingQuery}`);
     await newPage.goto(bingQuery, {
       waitUntil: "networkidle2",
       timeout: 60000,
     });
-    await sleep(1000); //delay
+    
 
     // === GET LINKS ===
     try {
@@ -132,6 +132,7 @@ async function extractAllLinks(songName, artistName) {
         } //for loop
         return results.length > 0 ? results : null;
       }); //get all links
+      return allSearchLinksWithText;
     } catch (error) {
       console.log("Can not get all links: ", error);
     }
@@ -141,13 +142,12 @@ async function extractAllLinks(songName, artistName) {
     console.log("Closing the browser...");
     await browser.close();
   }
-
 } //gain lyrics function
 
 async function getLyricsWithAI(urls) {
-    //loop through each source from urls array and try to get lyrics with ai URL-Context/google-search abilities.
-  for (const { url, source } of urls) {
-    try {
+  //loop through each source from urls array and try to get lyrics with ai URL-Context/google-search abilities.
+  try {
+    for (const { url, source } of urls) {
       const getLyricsPrompt = `
       you are a find and retrieve bot, you look in this site: ${source} with this URL: ${url} to get lyrics of song [${songName}] by [${artistName}], do not generete yourself.
       
@@ -171,12 +171,11 @@ async function getLyricsWithAI(urls) {
         continue;
       }
       return resultOfAi;
-    } catch (error) {
-      console.log("even ai could not get lyrics: ", error);
-    }
-  } // for loop
+    } // for loop
+  } catch (error) {
+    console.log("even ai could not get lyrics: ", error);
+  }
 } // getLyricsWtihAI
-
 
 let extractedLyrics = null;
 async function getLyrics(songName, artistName) {
@@ -429,7 +428,14 @@ bot.hears("I wanna Send a Music File.", async (ctx) => {
   await ctx.reply("Send me a Music");
 });
 bot.hears("Get Lyrics by entering name.", async (ctx) => {
-  await ctx.reply("type /lyrics Name by Artist e.g: Hello by Adele");
+  //choose between 1-with scraping(1,2 mins) & 2-with ai(2,5min)
+  await ctx.reply(
+    "Specify method",
+    Markup.keyboard([["Slow - 1 or 2 mins"], ["Slower - 2 or 5 mins"]])
+      .oneTime()
+      .resize()
+  );
+  // await ctx.reply("type /lyrics Name by Artist e.g: Hello by Adele");
 });
 
 //RECIEVE MUSIC FILE
@@ -447,16 +453,16 @@ bot.on(message("audio"), async (ctx) => {
   //choose between 1-with scraping(1,2 mins) & 2-with ai(2,5min)
   await ctx.reply(
     "Specify method",
-    Markup.keyboard([["Slow - 1 or 2 mins"], ["Slower - 2 or 5 mins"]])
+    Markup.keyboard([["a.Slow - 1 or 2 mins"], ["a.Slower - 2 or 5 mins"]])
       .oneTime()
       .resize()
   );
 });
 
 // get lyrics scraping method
-bot.hears("Slow - 1 or 2 mins", async (ctx) => {
+bot.hears("a.Slow - 1 or 2 mins", async (ctx) => {
   ctx.telegram.sendChatAction(ctx.chat.id, "typing");
-  //show a message => indicating that the bot is trying go get , kink of spinner maybe, or a timer , something that tells user that the bot is in sort of a process and also the user can see how much of the process is remained.
+  //show a message => indicating that the bot is trying go get , kind of spinner maybe, or a timer , something that tells user that the bot is in sort of a process and also the user can see how much of the process is remained.
   //get lyrics
   console.log("ctx.session should be: ", ctx.session);
   const songName = ctx.session.lastSong.name;
@@ -466,19 +472,26 @@ bot.hears("Slow - 1 or 2 mins", async (ctx) => {
 });
 
 //get lyrics ai method
-bot.hears("Slower - 2 or 5 mins", async (ctx) => {
+bot.hears("a.Slower - 2 or 5 mins", async (ctx) => {
   ctx.telegram.sendChatAction(ctx.chat.id, "typing");
-  //show a message => indicating that the bot is trying go get , kink of spinner maybe, or a timer , something that tells user that the bot is in sort of a process and also the user can see how much of the process is remained.
+  //show a message => indicating that the bot is trying go get , kind of spinner maybe, or a timer , something that tells user that the bot is in sort of a process and also the user can see how much of the process is remained.
   console.log("ctx.session should be: ", ctx.session);
   const songName = ctx.session.lastSong.name;
   const songArtist = ctx.session.lastSong.artist;
-  
+
   // get all links
-  const urls = await extractAllLinks(songName,songArtist);
+  const urls = await extractAllLinks(songName, songArtist);
   //loop through links with AI
   const lyrics = await getLyricsWithAI(urls);
-  console.log('urls should be: ',urls,'   \n ------lyrics should be: ',lyrics)
+  console.log(
+    "urls should be: ",
+    urls,
+    "   \n ------lyrics should be: ",
+    lyrics
+  );
 });
+
+
 // --- CONFIGURE /lyrics COMMAND ---
 // bot.command("lyrics", async (ctx) => {
 //   // get the text after command
@@ -535,8 +548,9 @@ bot.hears("Slower - 2 or 5 mins", async (ctx) => {
 //   }
 // });
 
-// test scraping lyrics and output TElegramBot
 
+
+// lyrics command
 bot.command("lyrics", async (ctx) => {
   const userInput = ctx.message.text.substring("/lyrics".length).trim();
   if (!userInput) {
@@ -555,7 +569,7 @@ bot.command("lyrics", async (ctx) => {
     await ctx.telegram.sendChatAction(ctx.chat.id, "typing");
     await ctx.reply(`Wait to get Lyrics for: ${songName} by ${songArtist}...`);
     console.log("type of answare is: ", typeof extractedLyrics);
-    // console.log('and the answare is: ',extractedLyrics);
+    console.log('and the answare is: ',extractedLyrics);
     await ctx.reply(extractedLyrics);
     /*
     try {

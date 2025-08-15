@@ -112,7 +112,6 @@ async function extractAllLinks(songName, artistName) {
       waitUntil: "networkidle2",
       timeout: 60000,
     });
-    
 
     // === GET LINKS ===
     try {
@@ -443,14 +442,14 @@ bot.on(message("audio"), async (ctx) => {
   //choose between 1-with scraping(1,2 mins) & 2-with ai(2,5min)
   await ctx.reply(
     "Specify method",
-    Markup.keyboard([["a.Slow - 1 or 2 mins"], ["a.Slower - 2 or 5 mins"]])
+    Markup.keyboard([["Slow - 1 or 2 mins"], ["Slower - 2 or 5 mins"]])
       .oneTime()
       .resize()
   );
 });
 
 // get lyrics scraping method
-bot.hears("a.Slow - 1 or 2 mins", async (ctx) => {
+bot.hears("Slow - 1 or 2 mins", async (ctx) => {
   ctx.telegram.sendChatAction(ctx.chat.id, "typing");
   //show a message => indicating that the bot is trying go get , kind of spinner maybe, or a timer , something that tells user that the bot is in sort of a process and also the user can see how much of the process is remained.
   //get lyrics
@@ -462,7 +461,7 @@ bot.hears("a.Slow - 1 or 2 mins", async (ctx) => {
 });
 
 //get lyrics ai method
-bot.hears("a.Slower - 2 or 5 mins", async (ctx) => {
+bot.hears("Slower - 2 or 5 mins", async (ctx) => {
   ctx.telegram.sendChatAction(ctx.chat.id, "typing");
   //show a message => indicating that the bot is trying go get , kind of spinner maybe, or a timer , something that tells user that the bot is in sort of a process and also the user can see how much of the process is remained.
   console.log("ctx.session should be: ", ctx.session);
@@ -482,81 +481,12 @@ bot.hears("a.Slower - 2 or 5 mins", async (ctx) => {
 });
 
 bot.hears("Get Lyrics by entering name.", async (ctx) => {
-  //choose between 1-with scraping(1,2 mins) & 2-with ai(2,5min)
-  await ctx.reply(
-    "Specify method",
-    Markup.keyboard([["b.Slow - 1 or 2 mins"], ["b.Slower - 2 or 5 mins"]])
-      .oneTime()
-      .resize()
-  );
-  // await ctx.reply("type /lyrics Name by Artist e.g: Hello by Adele");
-}); 
-
-bot.hears("b.Slow - 1 or 2 mins",async (ctx) => {
-  await ctx.reply("You wanna get music with name === slow methode")
-})
-bot.hears("b.Slower - 2 or 5 mins",async (ctx) => {
-  await ctx.reply("You wanna get music with name === slower methode")
-})
-// --- CONFIGURE /lyrics COMMAND ---
-// bot.command("lyrics", async (ctx) => {
-//   // get the text after command
-//   const userInput = ctx.message.text.substring("/lyrics".length).trim();
-//   if (!userInput) {
-//     return ctx.reply("Use This Format: /lyrics Hello by Adele");
-//   }
-
-//   // show typing...
-//   await ctx.telegram.sendChatAction(ctx.chat.id, "typing");
-//   try {
-//     // correct types with gemini
-//     const correctionPrompt = `You are a spell-checking and entity-recognition expert specializing in music. Correct any typos in the following user query. The query contains a song title and an artist. Your task is to return ONLY the corrected "Song Title by Artist". Do not add any explanation, quotation marks, or other text.INPUT: "${userInput}"\nOUTPUT:`;
-//     const correctionResult = await ai.models.generateContent({
-//       model: "gemini-2.5-flash",
-//       contents: correctionPrompt,
-//     });
-//     const correctedQuery = await correctionResult.text.trim();
-//     console.log("this should be corrected query: ", correctedQuery);
-//     // split the input
-//     const parts = correctedQuery.split(/ by /i);
-//     if (parts.length < 2) {
-//       return ctx.reply("FORMAT: SONG-NAME by ARTIST-NAME");
-//     }
-//     const songName = parts[0].trim();
-//     const artistName = parts[1].trim();
-//     console.log("this should be correct text: ", correctedQuery);
-//     console.log("this shoud be parts: ", parts);
-//     // URLS
-//     let URL=`https://www.azlyrics.com/lyrics/${artistName.toLocaleLowerCase().replace(/\s+/g,'')}/${songName.toLocaleLowerCase().replace(/\s+/g,"")}.html`;
-//     console.log('this is url: ',URL)
-//     const getLyricsPrompt = `
-//       you are a find and retrieve bot, you search sites like azlyrics: ${URL} to get lyrics of song [${songName}] by [${artistName}], do not generete yourself
-
-//       **Output Format:**
-//       - If you find the verified lyrics, provide ONLY the lyrics and nothing else.
-//       - If you cannot find the verified lyrics, respond with the single, exact string: "ERROR::LYRICS_NOT_FOUND"
-//     `;
-
-//     const lyrics = await ai.models.generateContent({
-//       model: "gemini-2.5-flash",
-//       contents: getLyricsPrompt,
-//       config: {
-//         tools: [{urlContext: {},googleSearch: {}}],
-//         temperature: 0.1,
-//       },
-//     });
-//     // test
-//     console.log('this should be metadata: ',lyrics.candidates[0].urlContextMetadata)
-//     await ctx.reply(lyrics.text);
-//   } catch (error) {
-//     console.error("AI error: ", error);
-//     await ctx.reply("ai is damaged!");
-//   }
-// });
+  
+  await ctx.reply("type /lyrics Name by Artist e.g: Hello by Adele");
+});
 
 
 
-// lyrics command
 bot.command("lyrics", async (ctx) => {
   const userInput = ctx.message.text.substring("/lyrics".length).trim();
   if (!userInput) {
@@ -575,7 +505,7 @@ bot.command("lyrics", async (ctx) => {
     await ctx.telegram.sendChatAction(ctx.chat.id, "typing");
     await ctx.reply(`Wait to get Lyrics for: ${songName} by ${songArtist}...`);
     console.log("type of answare is: ", typeof extractedLyrics);
-    console.log('and the answare is: ',extractedLyrics);
+    console.log("and the answare is: ", extractedLyrics);
     await ctx.reply(extractedLyrics);
     /*
     try {
